@@ -1,6 +1,5 @@
 import unittest
-
-from . import simulation as sim
+import abdpymc.simulation as sim
 
 
 class TestAntigen(unittest.TestCase):
@@ -43,3 +42,10 @@ class TestImmunity(unittest.TestCase):
         """
         imm = sim.Immunity(s=sim.Antigen(a=-100, b=1), n=sim.Antigen(a=100, b=1))
         self.assertTrue(imm.is_protected(s_titer=0, n_titer=0))
+
+    def test_not_protected(self):
+        """
+        Individual should not be protected if both S an N titer are very low.
+        """
+        imm = sim.Immunity(s=sim.Antigen(a=0, b=1), n=sim.Antigen(a=0, b=1))
+        self.assertFalse(imm.is_protected(s_titer=-100, n_titer=-100))
