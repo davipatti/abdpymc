@@ -1,4 +1,5 @@
 from collections import namedtuple
+from typing import Optional
 from numbers import Number
 from pydantic import (
     BaseModel,
@@ -20,17 +21,21 @@ InfectionResponses = namedtuple(
 
 class Response(BaseModel):
     """
+    An antibody response.
+
     a: 50% protective titer
     b: Slope of protection curve
-
-
+    perm_rise: Permanent rise after any infection or vaccination.
+    temp_rise_{i,v}: Temporary rise after an infection or vaccination.
+    temp_wane: Waning rate
     """
 
     model_config = ConfigDict(extra="forbid")
     a: FiniteFloat = 0.0
     b: PositiveFloat = 1.0
-    perm_rise: PositiveFloat = 2.0
-    temp_rise: PositiveFloat = 1.5
+    perm_rise: NonNegativeFloat = 2.0
+    temp_rise_i: NonNegativeFloat = 1.5
+    temp_rise_v: NonNegativeFloat = 2.0
     temp_wane: PositiveFloat = 0.95
 
     @field_validator("temp_wane")
@@ -52,21 +57,42 @@ class Response(BaseModel):
         grid = np.linspace(lo, hi)
         plt.plot(grid, self.p_protection(grid), **kwds)
 
-    def next_temp_response(self, prev: float, is_infected: bool) -> float:
+    def next_temp_response(
+        self, prev: float, is_infected: bool, is_vaccinated: bool = False
+    ) -> float:
         """
         Calculate the next temporary response given a previous temporary response.
 
         Args:
             prev: The previous temporary response.
-            is_infected: Whether or not this individual was infected.
+            is_infected: Did this individual just get infected?
+            is_vaccinated: Did this individual just get vaccinated?
         """
-        return prev * self.temp_wane + is_infected * self.temp_rise
+        return (
+            prev * self.temp_wane
+            + is_infected * self.temp_rise_i
+            + is_vaccinated * self.temp_rise_v
+        )
 
-    def perm_response(self, infections: np.array) -> float:
+    def perm_response(
+        self, infections: np.array, vaccinations: Optional[np.array] = None
+    ) -> float:
         """
-        Calculate a permanent response, given an array of infections.
+        Calculate a permanent response, given an array of infections and optional
+        vaccinations.
+
+        Args:
+            infections: Binary array indicating when infections occurred.
+            vaccinations: Binary array indicating when vaccinations occurred. Passing
+                None implies that this permanent response is not affected by vaccination
+                (i.e. for the N antigen).
         """
-        return self.perm_rise if infections.any() else 0.0
+        if infections.any():
+            return self.perm_rise
+        elif vaccinations is not None and vaccinations.any():
+            return self.perm_rise
+        else:
+            return 0.0
 
 
 @dataclass
@@ -148,17 +174,19 @@ class Individual:
             if is_infected:
                 infections[t] = 1.0
 
+            is_vaccinated = self.vacs[t] == 1.0
+
             s_temp = self.responses.s.next_temp_response(
-                s_temp, is_infected=is_infected
+                s_temp, is_infected=is_infected, is_vaccinated=is_vaccinated
             )
             n_temp = self.responses.n.next_temp_response(
                 n_temp, is_infected=is_infected
             )
 
-            s_perm = self.responses.s.perm_response(infections)
-            n_perm = self.responses.n.perm_response(infections)
-
-            print(f"{s_init=} {s_temp=} {s_perm=}")
+            s_perm = self.responses.s.perm_response(
+                infections[: t + 1], vaccinations=self.vacs[: t + 1]
+            )
+            n_perm = self.responses.n.perm_response(infections[: t + 1])
 
             s[t] = s_init + s_temp + s_perm
             n[t] = n_init + n_temp + n_perm

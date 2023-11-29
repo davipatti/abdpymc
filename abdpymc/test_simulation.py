@@ -39,9 +39,9 @@ class TestResponse(unittest.TestCase):
         with self.assertRaisesRegex(ValidationError, "temp_wane"):
             sim.Response(temp_wane=-0.5)
 
-    def test_temp_rise_must_be_positive(self):
-        with self.assertRaisesRegex(ValidationError, "temp_rise"):
-            sim.Response(temp_rise=-1)
+    def test_temp_rise_i_must_be_positive(self):
+        with self.assertRaisesRegex(ValidationError, "temp_rise_i"):
+            sim.Response(temp_rise_i=-1)
 
     def test_perm_rise_must_be_positive(self):
         with self.assertRaisesRegex(ValidationError, "perm_rise"):
@@ -53,13 +53,20 @@ class TestResponse(unittest.TestCase):
         self.assertEqual(1.0 * 0.95, temp_response)
 
     def test_next_temp_response_with_infection(self):
-        ag = sim.Response(temp_wane=0.95, temp_rise=1.8)
+        ag = sim.Response(temp_wane=0.95, temp_rise_i=1.8)
         temp_response = ag.next_temp_response(prev=1.0, is_infected=True)
         self.assertEqual(1.0 * 0.95 + 1.8, temp_response)
 
     def test_cant_pass_unknown_arg(self):
         with self.assertRaisesRegex(ValidationError, "Extra inputs are not permitted"):
             sim.Response(xyz=123)
+
+    def test_perm_response_incl_vaccination(self):
+        ag = sim.Response(temp_wane=0.95, temp_rise_i=1.8, perm_rise=2.2)
+        perm_response = ag.perm_response(
+            infections=np.zeros(5), vaccinations=np.array([0, 0, 1, 0, 0])
+        )
+        self.assertEqual(2.2, perm_response)
 
 
 class TestResponses(unittest.TestCase):
@@ -86,6 +93,18 @@ class TestResponses(unittest.TestCase):
 
 
 class TestIndividual(unittest.TestCase):
+    def test_vacs_pcrpos(self):
+        """
+        Test vacs and pcrpos attributes are passed correctly.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 0, 0, 0]),
+            vacs=np.array([0, 0, 1, 0, 0]),
+            responses=sim.Responses(s=sim.Response(), n=sim.Response()),
+        )
+        self.assertTrue((ind.vacs == np.array([0, 0, 1, 0, 0])).all())
+        self.assertTrue((ind.pcrpos == np.array([0, 0, 0, 0, 0])).all())
+
     def test_cant_pass_vacs_pcrpos_diff_shape(self):
         """
         Passing vacs and pcrpos that are different shapes should raise a ValueError.
@@ -196,7 +215,9 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 1, 0, 0]),
             vacs=np.array([0, 0, 0, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(a=0, b=1, temp_rise=0.3, perm_rise=0.34, temp_wane=0.94),
+                s=sim.Response(
+                    a=0, b=1, temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94
+                ),
                 n=sim.Response(a=0, b=1),
             ),
         )
@@ -222,9 +243,9 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 1, 0, 0]),
             vacs=np.array([0, 0, 0, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(a=0, b=1, temp_rise=0.3, perm_rise=0.34, temp_wane=0.94),
+                s=sim.Response(),
                 n=sim.Response(
-                    a=0, b=1, temp_rise=0.89, perm_rise=2.34, temp_wane=0.87
+                    a=0, b=1, temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
                 ),
             ),
         )
@@ -241,3 +262,96 @@ class TestIndividual(unittest.TestCase):
 
         # One time step after PCR+
         self.assertAlmostEqual(-2 + 0.89 * 0.87 + 2.34, output.n_response[3])
+
+    def test_vaccination_effect_on_s(self):
+        """
+        Vaccinations should increase the S response.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 0, 0, 0]),
+            vacs=np.array([0, 0, 1, 0, 0]),
+            responses=sim.Responses(
+                s=sim.Response(
+                    a=0, b=1, temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94
+                ),
+                n=sim.Response(
+                    a=0, b=1, temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
+                ),
+            ),
+        )
+
+        output = ind.infection_responses(
+            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
+        )
+
+        # Before the vaccination
+        self.assertTrue((np.array([-1, -1]) == output.s_response[:1]).all())
+
+        # At the point of the vaccination
+        self.assertAlmostEqual(-1 + 0.3 + 0.34, output.s_response[2])
+
+        # One time step after vaccination
+        self.assertAlmostEqual(-1 + 0.3 * 0.94 + 0.34, output.s_response[3])
+
+    def test_vaccination_and_pcrpos_effect_on_s(self):
+        """
+        Vaccinations should increase the S response.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 0, 1, 0]),
+            vacs=np.array([0, 0, 1, 0, 0]),
+            responses=sim.Responses(
+                s=sim.Response(
+                    a=0,
+                    b=1,
+                    temp_rise_i=0.21,
+                    temp_rise_v=0.3,
+                    perm_rise=0.34,
+                    temp_wane=0.94,
+                ),
+                n=sim.Response(),
+            ),
+        )
+
+        output = ind.infection_responses(
+            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
+        )
+
+        # Before vaccination
+        self.assertTrue((np.array([-1, -1]) == output.s_response[:1]).all())
+
+        # At the point of the vaccination
+        self.assertAlmostEqual(-1 + 0.3 + 0.34, output.s_response[2])
+
+        # One time step after vaccination, gets infected
+        self.assertAlmostEqual(-1 + 0.3 * 0.94 + 0.34 + 0.21, output.s_response[3])
+
+    def test_vaccination_and_pcrpos_effect_on_n(self):
+        """
+        Only PCR+ should impact N response.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 0, 1, 0]),
+            vacs=np.array([0, 0, 1, 0, 0]),
+            responses=sim.Responses(
+                s=sim.Response(),
+                n=sim.Response(
+                    a=0,
+                    b=1,
+                    temp_rise_v=0.0,
+                    temp_rise_i=0.89,
+                    perm_rise=2.34,
+                    temp_wane=0.87,
+                ),
+            ),
+        )
+
+        output = ind.infection_responses(
+            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
+        )
+
+        # Before PCR+ all values should be initial
+        self.assertTrue((np.array([-2, -2, -2]) == output.n_response[:3]).all())
+
+        # One time step after vaccination, gets infected
+        self.assertAlmostEqual(-2 + 0.89 + 2.34, output.n_response[3])
