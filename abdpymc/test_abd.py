@@ -9,8 +9,7 @@ import pytensor.tensor as at
 import arviz as az
 
 import abdpymc as abd
-
-from . import plot_timelines
+import abdpymc.timelines as timelines
 
 
 class TestMaskFutureInfections(unittest.TestCase):
@@ -544,8 +543,8 @@ class TestDirichletMultinomialModel(unittest.TestCase):
         """
         # dim_0 is ind, dim_1 is gap
         gap_p = (
-            self.prior[f"dmi_p_0"]
-            .mean(dim=f"dmi_p_0_dim_0")
+            self.prior["dmi_p_0"]
+            .mean(dim="dmi_p_0_dim_0")
             .mean(dim="draw")
             .sel(chain=0)
         )
@@ -564,7 +563,7 @@ class TestConcatenateDirMulInfections(unittest.TestCase):
         """
         idata = az.from_netcdf("data/inference_data/abd-20231109-small.nc")
         post = idata.posterior.sel(chain=[0, 1], draw=[0, 1, 2])
-        post = plot_timelines.concatenate_dirmul_infections(post)
+        post = timelines.concatenate_dirmul_infections(post)
         self.assertIn("i", post)
 
 

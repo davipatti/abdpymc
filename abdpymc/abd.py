@@ -137,7 +137,9 @@ class CombinedTiterData:
             os.mkdir(directory)
 
         fmt = "%1.0f"
-        path = lambda x: f"{directory}/{x}"
+
+        def path(x):
+            return f"{directory}/{x}"
 
         self.df.to_csv(path("df.csv"))
         np.savetxt(path("vacs.txt"), self.vacs, fmt=fmt)
@@ -156,7 +158,9 @@ class CombinedTiterData:
             direcotry: Directory containint df.csv, vacs.txt, pcrpos.txt and t0.txt.
                 See to_disk.
         """
-        path = lambda x: f"{directory}/{x}"
+
+        def path(x):
+            return f"{directory}/{x}"
 
         df = pd.read_csv(path("df.csv"), index_col=0)
         vacs = np.loadtxt(path("vacs.txt"))
@@ -234,7 +238,9 @@ def model_popab_vacsep_nonwane_n(data: AntigenTiterData, i: at.TensorLike):
         i: (n_gap, n_ind) array containing 0/1 indicating infection events.
     """
     assert data.ag == "n"
-    var = lambda x: f"ab_{data.ag}_{x}"
+
+    def var(x):
+        return f"ab_{data.ag}_{x}"
 
     # generate a value of perm for all gaps after the first infection in each individual
     perm = pm.Gamma(var("perm"), mu=2.0, sigma=0.5)
@@ -270,7 +276,9 @@ def model_popab_vacsep_nonwane_s(
         v: (n_gap, n_ind) array containing 0/1 indicating vaccinations.
     """
     assert data.ag == "s"
-    var = lambda x: f"ab_{data.ag}_{x}"
+
+    def var(x):
+        return f"ab_{data.ag}_{x}"
 
     # Permanent response after initial exposure (vaccination or infection)
     perm = pm.Gamma(var("perm"), mu=2.0, sigma=0.5)
@@ -456,7 +464,9 @@ def model_sigmoids(data: AntigenTiterData, a: at.TensorLike) -> None:
         dynamics component of
             the model.
     """
-    var = lambda x: f"it_{data.ag}_{x}"
+
+    def var(x):
+        return f"it_{data.ag}_{x}"
 
     pm.Normal(
         var("lik"),
