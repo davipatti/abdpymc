@@ -14,6 +14,8 @@ from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 
+import abdpymc as abd
+
 InfectionResponses = namedtuple(
     "InfectionResponses", ("infections", "s_response", "n_response")
 )
@@ -186,7 +188,9 @@ class Individual:
             s_perm = self.responses.s.perm_response(
                 infections[: t + 1], vaccinations=self.vacs[: t + 1]
             )
-            n_perm = self.responses.n.perm_response(infections[: t + 1])
+            n_perm = self.responses.n.perm_response(
+                infections[: t + 1], vaccinations=None
+            )
 
             s[t] = s_init + s_temp + s_perm
             n[t] = n_init + n_temp + n_perm
@@ -210,29 +214,48 @@ class Cohort:
     """
 
     random_seed: int
-
-    vacs_path: str
-    pcrpos_path: str
-
+    cohort_data_path: str
     responses: Responses
-
     s_mu: Number = -2
     n_mu: Number = -2
     s_sd: Number = 1
     n_sd: Number = 1
 
     def __post_init__(self):
-        vacs = np.loadtxt(self.vacs_path)
-        pcrpos = np.loadtxt(self.pcrpos_path)
-        if vacs.shape != pcrpos.shape:
+        self.true_data = abd.CombinedTiterData.from_disk(self.cohort_data_path)
+
+        self.vacs = self.true_data.vacs
+        self.pcrpos = self.true_data.pcrpos
+
+        if self.vacs.shape != self.pcrpos.shape:
             raise ValueError("vaccination and PCR+ data are different shapes")
 
         np.random.seed(self.random_seed)
 
-        self.n_inds, self.n_gaps = vacs.shape
+        self.n_inds, self.n_gaps = self.vacs.shape
 
-        self.s_titer = np.empty(vacs.shape)
-        self.n_titer = np.empty(vacs.shape)
+        self.s_titer = np.empty(self.vacs.shape)
+        self.n_titer = np.empty(self.vacs.shape)
+        self.infections = np.empty(self.vacs.shape)
 
-        self.s_titer[:, 0] = np.random.randn(self.n_inds) * self.s_sd + self.s_mu
-        self.n_titer[:, 0] = np.random.randn(self.n_inds) * self.n_sd + self.n_mu
+        self.individuals = [
+            Individual(
+                pcrpos=self.pcrpos[i], vacs=self.vacs[i], responses=self.responses
+            )
+            for i in range(self.n_inds)
+        ]
+
+    def simulate_responses(self, lam0: np.array):
+        """
+        Simulate responses for all individuals. This method updates self.s_titer,
+        self.n_titer and self.infections.
+        """
+        for i in range(self.n_inds):
+            infection_responses = self.individuals[i].infection_responses(
+                s_init=np.random.randn() * self.s_sd + self.s_mu,
+                n_init=np.random.randn() * self.n_sd + self.n_mu,
+                lam0=lam0,
+            )
+            self.s_titer[i] = infection_responses.s_response
+            self.n_titer[i] = infection_responses.n_response
+            self.infections[i] = infection_responses.infections
