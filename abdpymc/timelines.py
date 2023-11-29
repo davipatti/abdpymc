@@ -373,8 +373,10 @@ def plot_individual(
             y_140_s = df_ind_i.query("log_dilution == 0 & measurement == '10222020-S'")
 
             if show_only_1_40_without_ititers:
-                s_ititer_samples = y_s.index
-                y_140_s = y_140_s.query("sample not in @s_ititer_samples")
+                y_140_s = y_140_s.query(
+                    "sample not in @s_ititer_samples",
+                    local_dict=dict(s_ititer_samples=y_s.index),
+                )
 
             ax.scatter(
                 y_140_s.index + 0.5,
@@ -386,8 +388,10 @@ def plot_individual(
             y_140_n = df_ind_i.query("log_dilution == 0 & measurement == '40588-V08B'")
 
             if show_only_1_40_without_ititers:
-                n_ititer_samples = y_n.index
-                y_140_n = y_140_n.query("sample not in @n_ititer_samples")
+                y_140_n = y_140_n.query(
+                    "sample not in @n_ititer_samples",
+                    local_dict=dict(n_ititer_samples=y_n.index),
+                )
 
             ax.scatter(
                 y_140_n.index + 0.5,

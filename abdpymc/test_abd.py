@@ -570,6 +570,5 @@ class TestConcatenateDirMulInfections(unittest.TestCase):
 if __name__ == "__main__":
     # Stop pymc reporting things like which variables are going to be sampled
     logging.getLogger("pymc").setLevel(logging.ERROR)
-    logging.getLogger("plot_timelines").setLevel(logging.ERROR)
 
     unittest.main()
