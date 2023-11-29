@@ -55,10 +55,10 @@ class Individual:
 
     def __post_init__(self):
         if self.pcrpos.shape != self.vacs.shape:
-            raise ValueError("vaccination and PCR+ data are different shapes")
+            raise ValueError("vaccination and pcrpos are different shapes")
         if self.pcrpos.ndim != 1:
-            raise ValueError("vaccination and PCR+ data should be 1 dimensional")
-        self.n_gaps = len(pcrpos)
+            raise ValueError("vaccination and pcrpos should be 1 dimensional")
+        self.n_gaps = len(self.pcrpos)
 
     def infection_responses(
         self, s_init: Number, n_init: Number, lam0: np.ndarray
