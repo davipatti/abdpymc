@@ -555,6 +555,10 @@ def year_tick_labels(t0: pd.Period, n_months: int) -> tuple[np.ndarray, np.ndarr
     return np.array(ticks), np.array(labels)
 
 
+def invlogistic(x, a, b, d):
+    return a - np.log(d / x - 1) / b
+
+
 def logistic(x, a, b, d):
     return d / (1 + np.exp(-b * (x - a)))
 

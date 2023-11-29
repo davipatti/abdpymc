@@ -1,6 +1,8 @@
 from .abd import (
     CombinedTiterData,
     incorporate_pcrpos,
+    invlogistic,
+    logistic,
     mask_future_infection,
     mask_multiple_infections_2_chunks,
     mask_multiple_infections_3_chunks,
@@ -15,6 +17,8 @@ from . import timelines
 __all__ = [
     "CombinedTiterData",
     "incorporate_pcrpos",
+    "invlogistic",
+    "logistic",
     "mask_future_infection",
     "mask_multiple_infections_2_chunks",
     "mask_multiple_infections_3_chunks",

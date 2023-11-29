@@ -567,6 +567,12 @@ class TestConcatenateDirMulInfections(unittest.TestCase):
         self.assertIn("i", post)
 
 
+class TestInvLogistic(unittest.TestCase):
+    def test_invlogistic_is_inverse_of_logistic(self):
+        kwds = dict(a=-0.123, b=1.357, d=7.78)
+        self.assertEqual(3, abd.logistic(abd.invlogistic(3, **kwds), **kwds))
+
+
 if __name__ == "__main__":
     # Stop pymc reporting things like which variables are going to be sampled
     logging.getLogger("pymc").setLevel(logging.ERROR)
