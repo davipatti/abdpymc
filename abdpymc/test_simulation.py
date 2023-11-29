@@ -57,6 +57,10 @@ class TestResponse(unittest.TestCase):
         temp_response = ag.next_temp_response(prev=1.0, is_infected=True)
         self.assertEqual(1.0 * 0.95 + 1.8, temp_response)
 
+    def test_cant_pass_unknown_arg(self):
+        with self.assertRaisesRegex(ValidationError, "Extra inputs are not permitted"):
+            sim.Response(xyz=123)
+
 
 class TestResponses(unittest.TestCase):
     def test_protected_n_alone(self):
@@ -156,8 +160,8 @@ class TestIndividual(unittest.TestCase):
         initial responses.
         """
         ind = sim.Individual(
-            pcrpos=np.array([0, 0, 1]),
-            vacs=np.array([0, 1, 0]),
+            pcrpos=np.array([0, 0, 0]),
+            vacs=np.array([0, 0, 0]),
             responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
         )
 
@@ -167,3 +171,73 @@ class TestIndividual(unittest.TestCase):
 
         self.assertTrue((output.s_response == 0.123).all())
         self.assertTrue((output.n_response == 0.456).all())
+
+    def test_pcrpos_get_recognised_as_infections(self):
+        """
+        A PCR+ should cause a 1 in the infections output.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 1, 0, 0]),
+            vacs=np.array([0, 0, 0, 0, 0]),
+            responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
+        )
+
+        output = ind.infection_responses(
+            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
+        )
+
+        self.assertTrue((output.infections == np.array([0, 0, 1, 0, 0])).all())
+
+    def test_pcrpos_response_s(self):
+        """
+        Test S responses are correct after a PCR+.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 1, 0, 0]),
+            vacs=np.array([0, 0, 0, 0, 0]),
+            responses=sim.Responses(
+                s=sim.Response(a=0, b=1, temp_rise=0.3, perm_rise=0.34, temp_wane=0.94),
+                n=sim.Response(a=0, b=1),
+            ),
+        )
+
+        output = ind.infection_responses(
+            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
+        )
+
+        # Before the PCR+
+        self.assertTrue((np.array([-1, -1]) == output.s_response[:1]).all())
+
+        # At the point of the PCR+
+        self.assertAlmostEqual(-1 + 0.3 + 0.34, output.s_response[2])
+
+        # One time step after PCR+
+        self.assertAlmostEqual(-1 + 0.3 * 0.94 + 0.34, output.s_response[3])
+
+    def test_pcrpos_response_n(self):
+        """
+        Test N responses are correct after a PCR+.
+        """
+        ind = sim.Individual(
+            pcrpos=np.array([0, 0, 1, 0, 0]),
+            vacs=np.array([0, 0, 0, 0, 0]),
+            responses=sim.Responses(
+                s=sim.Response(a=0, b=1, temp_rise=0.3, perm_rise=0.34, temp_wane=0.94),
+                n=sim.Response(
+                    a=0, b=1, temp_rise=0.89, perm_rise=2.34, temp_wane=0.87
+                ),
+            ),
+        )
+
+        output = ind.infection_responses(
+            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
+        )
+
+        # Before the PCR+
+        self.assertTrue((np.array([-2, -2]) == output.n_response[:1]).all())
+
+        # At the point of the PCR+
+        self.assertAlmostEqual(-2 + 0.89 + 2.34, output.n_response[2])
+
+        # One time step after PCR+
+        self.assertAlmostEqual(-2 + 0.89 * 0.87 + 2.34, output.n_response[3])

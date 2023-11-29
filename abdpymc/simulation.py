@@ -6,6 +6,7 @@ from pydantic import (
     PositiveFloat,
     FiniteFloat,
     field_validator,
+    ConfigDict,
 )
 from dataclasses import dataclass
 
@@ -25,13 +26,12 @@ class Response(BaseModel):
 
     """
 
+    model_config = ConfigDict(extra="forbid")
     a: FiniteFloat = 0.0
     b: PositiveFloat = 1.0
     perm_rise: PositiveFloat = 2.0
     temp_rise: PositiveFloat = 1.5
     temp_wane: PositiveFloat = 0.95
-    temp: NonNegativeFloat = 0.0
-    init: FiniteFloat = -2.0
 
     @field_validator("temp_wane")
     @classmethod
@@ -66,7 +66,7 @@ class Response(BaseModel):
         """
         Calculate a permanent response, given an array of infections.
         """
-        return self.perm_response if infections.any() else 0.0
+        return self.perm_rise if infections.any() else 0.0
 
 
 @dataclass
@@ -129,12 +129,21 @@ class Individual:
         n_temp = 0
 
         for t in range(self.n_gaps):
-            is_exposed = np.random.uniform() < lam0[t]
-            is_infected = (
-                not self.responses.is_protected(s_titer=s[t], n_titer=n[t])
-                if is_exposed
-                else False
-            )
+            exposed = np.random.uniform() < lam0[t]
+
+            s_prev = s[t - 1] if t > 0 else s_init
+            n_prev = n[t - 1] if t > 0 else n_init
+
+            if self.pcrpos[t] == 1:
+                is_infected = True
+
+            elif exposed and not self.responses.is_protected(
+                s_titer=s_prev, n_titer=n_prev
+            ):
+                is_infected = True
+
+            else:
+                is_infected = False
 
             if is_infected:
                 infections[t] = 1.0
@@ -148,6 +157,8 @@ class Individual:
 
             s_perm = self.responses.s.perm_response(infections)
             n_perm = self.responses.n.perm_response(infections)
+
+            print(f"{s_init=} {s_temp=} {s_perm=}")
 
             s[t] = s_init + s_temp + s_perm
             n[t] = n_init + n_temp + n_perm
