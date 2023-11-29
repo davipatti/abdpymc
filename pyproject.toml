@@ -18,3 +18,5 @@ dev = [
     "pytest", "pyflakes", "pycodestyle"
 ]
 
+[tool.setuptools]
+py-modules = ["abdpymc"]
