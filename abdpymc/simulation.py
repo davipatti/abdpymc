@@ -52,7 +52,10 @@ class Protection(BaseModelNoExtra):
         """
         return np.random.uniform() < self.p_protection(titer)
 
-    def plot_protection(self, lo=-5, hi=5, **kwds):
+    def plot_curve(self, lo: FiniteFloat = -5, hi: FiniteFloat = 5, **kwds):
+        """
+        Plot the protection curve between lo and hi.
+        """
         grid = np.linspace(lo, hi)
         plt.plot(grid, self.p_protection(grid), **kwds)
 
@@ -162,9 +165,9 @@ class Antibodies(BaseModelNoExtra):
         protected_by_n = self.n.protection.is_protected(n_titer)
         return protected_by_n or protected_by_s
 
-    def plot_protection(self, lo=-5, hi=5, **kwds):
-        self.s.plot_protection(lo=lo, hi=hi, label="S", **kwds)
-        self.n.plot_protection(lo=lo, hi=hi, label="N", **kwds)
+    def plot_protection_curves(self, lo=-5, hi=5, **kwds):
+        self.s.protection.plot_curve(lo=lo, hi=hi, label="S", **kwds)
+        self.n.protection.plot_curve(lo=lo, hi=hi, label="N", **kwds)
 
 
 @dataclass
@@ -288,7 +291,7 @@ class Cohort:
         self.n_titer = np.array([value.n_response for value in infection_responses])
         self.infections = np.array([value.infections for value in infection_responses])
 
-    def simulate_dataset_row(self, row: pd.Series) -> dict:
+    def simulate_row(self, row: pd.Series) -> dict:
         """
         Simulate an OD reading given this simulation's parameters and a row of data from
         the main cohort dataset (abdpymc.abd.CombinedTiterData.data). See
@@ -320,4 +323,4 @@ class Cohort:
         lookup the associated simulated titers. Sample dilutions and simulated titer are
         then used to model OD measurements. Other columns from df_true are also retained.
         """
-        return pd.DataFrame([self.simulate_od(row) for _, row in df_true.iterrows()])
+        return pd.DataFrame([self.simulate_row(row) for _, row in df_true.iterrows()])
