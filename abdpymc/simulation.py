@@ -3,15 +3,15 @@ from typing import Optional
 from numbers import Number
 from pydantic import (
     BaseModel,
+    ConfigDict,
+    field_validator,
+    FiniteFloat,
     NegativeFloat,
     NonNegativeFloat,
     PositiveFloat,
-    FiniteFloat,
-    field_validator,
-    ConfigDict,
 )
-from dataclasses import dataclass
 
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -151,8 +151,7 @@ class Antibody(BaseModelNoExtra):
     dynamics: Dynamics = Dynamics()
 
 
-@dataclass
-class Antibodies:
+class Antibodies(BaseModelNoExtra):
     s: Antibody = Antibody()
     n: Antibody = Antibody()
 
@@ -167,8 +166,7 @@ class Antibodies:
         self.n.plot_protection(lo=lo, hi=hi, label="N", **kwds)
 
 
-@dataclass
-class Individual:
+class Individual(BaseModelNoExtra):
     """
     {pcrpos,vacs}: Both (n_gaps,) binary arrays indicating when individuals had a PCR+
         result or were vaccinated.
@@ -245,8 +243,7 @@ class Individual:
         return InfectionResponses(infections=infections, s_response=s, n_response=n)
 
 
-@dataclass
-class Cohort:
+class Cohort(BaseModelNoExtra):
     """
     Args:
         random_seed: Passed to np.random.seed.
