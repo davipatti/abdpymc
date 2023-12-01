@@ -24,7 +24,9 @@ InfectionResponses = namedtuple(
 
 
 class BaseModelNoExtra(BaseModel):
-    """Pydantic class that prevents additional fields being passed."""
+    """
+    Prevent additional fields being passed to a pydantic model.
+    """
 
     model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
@@ -33,8 +35,9 @@ class Protection(BaseModelNoExtra):
     """
     Parameters of a protection curve
 
-    a: 50% protective titer
-    b: Slope of protection curve
+    Args:
+        a: 50% protective titer
+        b: Slope of protection curve
     """
 
     a: FiniteFloat = 0.0
@@ -52,7 +55,7 @@ class Protection(BaseModelNoExtra):
         """
         return np.random.uniform() < self.p_protection(titer)
 
-    def plot_curve(self, lo: FiniteFloat = -5, hi: FiniteFloat = 5, **kwds):
+    def plot_curve(self, lo: FiniteFloat = -5, hi: FiniteFloat = 5, **kwds) -> None:
         """
         Plot the protection curve between lo and hi.
         """
@@ -106,8 +109,8 @@ class Dynamics(BaseModelNoExtra):
 
     @field_validator("temp_wane")
     @classmethod
-    def wane_must_be_between_0_1(cls, value):
-        if not 0 <= value <= 1:
+    def wane_must_be_between_0_1(cls, value) -> float:
+        if not 0.0 <= value <= 1.0:
             raise ValueError("waning parameter must be between 0-1")
         return value
 
@@ -150,22 +153,44 @@ class Dynamics(BaseModelNoExtra):
 
 
 class Antibody(BaseModelNoExtra):
+    """
+    Behaviour of an antibody defined by titer mediated protection from infection, ELISA
+    characteristics and how titers change in response to vaccination or infection
+    (dynamics).
+    """
+
     protection: Protection = Protection()
     elisa: Elisa = Elisa()
     dynamics: Dynamics = Dynamics()
 
 
 class Antibodies(BaseModelNoExtra):
+    """
+    S and N antibodies.
+    """
+
     s: Antibody = Antibody()
     n: Antibody = Antibody()
 
     def is_protected(self, s_titer: Number, n_titer: Number) -> bool:
-        "Is an individual protected by either an S or N response?"
+        """
+        Is an individual protected by either an S or N response?
+
+        Args:
+            {s,n}_titer: Titers.
+        """
         protected_by_s = self.s.protection.is_protected(s_titer)
         protected_by_n = self.n.protection.is_protected(n_titer)
         return protected_by_n or protected_by_s
 
-    def plot_protection_curves(self, lo=-5, hi=5, **kwds):
+    def plot_protection_curves(self, lo=-5, hi=5, **kwds) -> None:
+        """
+        Plot protection curves for both antibodies.
+
+        Args:
+            lo: Titer minimum (x-axis).
+            hi: Titer maximum (y-axis).
+        """
         self.s.protection.plot_curve(lo=lo, hi=hi, label="S", c=abd.DARKORANGE, **kwds)
         self.n.protection.plot_curve(lo=lo, hi=hi, label="N", c=abd.BLUEGREY, **kwds)
 
@@ -173,15 +198,19 @@ class Antibodies(BaseModelNoExtra):
 @dataclass
 class Individual:
     """
-    {pcrpos,vacs}: Both (n_gaps,) binary arrays indicating when individuals had a PCR+
-        result or were vaccinated.
+    An individual.
+
+    Args:
+        {pcrpos,vacs}: (n_gaps,) binary arrays indicating when individuals had a PCR+
+            result or were vaccinated.
+        ab: Antibody responses.
     """
 
     pcrpos: np.array
     vacs: np.array
     ab: Antibodies = Antibodies()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.pcrpos.shape != self.vacs.shape:
             raise ValueError("vaccination and pcrpos are different shapes")
         if self.pcrpos.ndim != 1:
@@ -254,7 +283,7 @@ class Cohort:
     Args:
         random_seed: Passed to np.random.seed.
         cohort_data_path: See abdpymc.abd.CombinedTiterData.
-        responses: Defines antibody responses.
+        antibodies: Defines antibody responses.
 
     Attributes:
         n_inds: Number of individuals.
@@ -265,7 +294,7 @@ class Cohort:
     cohort_data_path: str
     antibodies: Antibodies = Antibodies()
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         np.random.seed(self.random_seed)
         self.true = abd.CombinedTiterData.from_disk(self.cohort_data_path)
         self.n_inds, self.n_gaps = self.true.vacs.shape
@@ -282,6 +311,9 @@ class Cohort:
         """
         Simulate responses for all individuals. This method updates self.s_titer,
         self.n_titer and self.infections.
+
+        Args:
+            lam0: (n_gaps,) array containing baseline infection rates for each time gap.
         """
         infection_responses = [
             self.individuals[i].infection_responses(lam0=lam0)
@@ -296,6 +328,10 @@ class Cohort:
         Simulate an OD reading given this simulation's parameters and a row of data from
         the main cohort dataset (abdpymc.abd.CombinedTiterData.data). See
         self.simulate_dataset for more details.
+
+        Args:
+            row: pd.Series containing "measurement", "individual_i", "elapsed_months",
+                "dilution", "record_id", "log_dilution", "sample_i" and "sample".
         """
         measurement = row["measurement"]
         ab = {"10222020-S": "s", "40588-V08B": "n"}[measurement]
@@ -314,7 +350,7 @@ class Cohort:
             sample=row["sample"],
         )
 
-    def simulate_dataset(self, df_true: pd.DataFrame) -> None:
+    def simulate_dataset(self, df_true: pd.DataFrame) -> pd.DataFrame:
         """
         Simulate OD readings for an entire dataset.
 
@@ -322,5 +358,10 @@ class Cohort:
         and the individual this sample was taken from ('individual_i') which are used to
         lookup the associated simulated titers. Sample dilutions and simulated titer are
         then used to model OD measurements. Other columns from df_true are also retained.
+
+        Args:
+            df_true: Dataset to model the characteristics of the simulation measurements
+                on. Columns must contain "measurement", "individual_i", "elapsed_months",
+                "dilution", "record_id", "log_dilution", "sample_i" and "sample".
         """
         return pd.DataFrame([self.simulate_row(row) for _, row in df_true.iterrows()])
