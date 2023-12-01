@@ -1,5 +1,7 @@
 from .abd import (
+    BLUEGREY,
     CombinedTiterData,
+    DARKORANGE,
     incorporate_pcrpos,
     invlogistic,
     logistic,
@@ -15,7 +17,9 @@ from . import simulation
 from . import timelines
 
 __all__ = [
+    "BLUEGREY",
     "CombinedTiterData",
+    "DARKORANGE",
     "incorporate_pcrpos",
     "invlogistic",
     "logistic",

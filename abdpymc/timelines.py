@@ -560,14 +560,14 @@ def concatenate_dirmul_infections(post: xr.Dataset) -> xr.Dataset:
     return post
 
 
-if __name__ == "__main__":
+def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        "plot_timelines.py",
+        "abd-timelines",
         description="Default behaviour is to plot all individuals in batches of 250. "
         "Use --individuals to plot only specific individuals or --pcrpos_only to plot "
-        "only indivdiuals that have a PCR+ test result.",
+        "only individuals that have a PCR+ test result.",
     )
     parser.add_argument("--idata", help="Path of .nc file")
     parser.add_argument(
@@ -672,3 +672,7 @@ if __name__ == "__main__":
             ncols=args.ncols,
             **kwds,
         )
+
+
+if __name__ == "__main__":
+    main()

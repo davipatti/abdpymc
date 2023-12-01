@@ -896,10 +896,10 @@ def mask_multiple_infections_2_chunks(arr: at.TensorLike, split: int):
     )
 
 
-if __name__ == "__main__":
+def main():
     import argparse
 
-    parser = argparse.ArgumentParser("abd.py")
+    parser = argparse.ArgumentParser("abd-model")
     parser.add_argument(
         "--model",
         help="Specifies the function that generates the pymc Model to use. Either "
@@ -945,3 +945,7 @@ if __name__ == "__main__":
         idata = pm.sample(tune=args.tune, draws=args.draws, cores=args.cores)
 
     az.to_netcdf(idata, args.netcdf)
+
+
+if __name__ == "__main__":
+    main()

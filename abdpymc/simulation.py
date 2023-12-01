@@ -166,8 +166,8 @@ class Antibodies(BaseModelNoExtra):
         return protected_by_n or protected_by_s
 
     def plot_protection_curves(self, lo=-5, hi=5, **kwds):
-        self.s.protection.plot_curve(lo=lo, hi=hi, label="S", **kwds)
-        self.n.protection.plot_curve(lo=lo, hi=hi, label="N", **kwds)
+        self.s.protection.plot_curve(lo=lo, hi=hi, label="S", c=abd.DARKORANGE, **kwds)
+        self.n.protection.plot_curve(lo=lo, hi=hi, label="N", c=abd.BLUEGREY, **kwds)
 
 
 @dataclass

@@ -1,22 +1,16 @@
 [project]
 name = "abdpymc"
 description = "Antibody dynamics analysis using PyMC"
-version = "0.1.0"
-authors = [
-    { name = "David Pattinson", email = "david.pattinson@wisc.edu" }
-]
-dependencies = [
-    "arviz",
-    "matplotlib", 
-    "numpy",
-    "pandas",
-    "pymc",
-]
+version = "0.1.1"
+authors = [{ name = "David Pattinson", email = "david.pattinson@wisc.edu" }]
+dependencies = ["arviz", "matplotlib", "numpy", "pandas", "pymc"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest", "pyflakes", "pycodestyle"
-]
+dev = ["pytest", "pyflakes", "pycodestyle"]
 
 [tool.setuptools]
 py-modules = ["abdpymc"]
+
+[project.scripts]
+abd-model = "abdpymc.abd:main"
+abd-timelines = "abdpymc.timelines:main"
