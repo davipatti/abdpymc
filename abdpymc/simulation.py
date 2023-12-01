@@ -211,12 +211,12 @@ class Cohort:
 
     def __post_init__(self):
         np.random.seed(self.random_seed)
-        self.true_data = abd.CombinedTiterData.from_disk(self.cohort_data_path)
-        self.n_inds, self.n_gaps = self.true_data.vacs.shape
+        self.true = abd.CombinedTiterData.from_disk(self.cohort_data_path)
+        self.n_inds, self.n_gaps = self.true.vacs.shape
         self.individuals = [
             Individual(
-                pcrpos=self.true_data.pcrpos[i],
-                vacs=self.true_data.vacs[i],
+                pcrpos=self.true.pcrpos[i],
+                vacs=self.true.vacs[i],
                 responses=self.responses,
             )
             for i in range(self.n_inds)

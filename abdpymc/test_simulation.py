@@ -342,7 +342,7 @@ class TestCohort(unittest.TestCase):
         """
         lam0 = np.repeat(0.04, self.cohort.n_gaps)
         self.cohort.simulate_responses(lam0=lam0)
-        self.assertEqual(self.cohort.true_data.vacs.shape, self.cohort.s_titer.shape)
+        self.assertEqual(self.cohort.true.vacs.shape, self.cohort.s_titer.shape)
 
     def test_simulate_responses_n_titer_shape(self):
         """
@@ -351,7 +351,7 @@ class TestCohort(unittest.TestCase):
         """
         lam0 = np.repeat(0.04, self.cohort.n_gaps)
         self.cohort.simulate_responses(lam0=lam0)
-        self.assertEqual(self.cohort.true_data.vacs.shape, self.cohort.n_titer.shape)
+        self.assertEqual(self.cohort.true.vacs.shape, self.cohort.n_titer.shape)
 
     def test_simulate_responses_infections_shape(self):
         """
@@ -360,4 +360,4 @@ class TestCohort(unittest.TestCase):
         """
         lam0 = np.repeat(0.04, self.cohort.n_gaps)
         self.cohort.simulate_responses(lam0=lam0)
-        self.assertEqual(self.cohort.true_data.vacs.shape, self.cohort.infections.shape)
+        self.assertEqual(self.cohort.true.vacs.shape, self.cohort.infections.shape)
