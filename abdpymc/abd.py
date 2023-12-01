@@ -120,6 +120,13 @@ class CombinedTiterData:
     def __repr__(self) -> str:
         return f"CombinedTiterData(t0={self.t0}, n_inds={self.n_inds})"
 
+    @property
+    def periods(self) -> pd.Series:
+        """
+        Month periods that correspond to each gap.
+        """
+        return pd.Series([self.t0 + i for i in range(self.n_gaps)])
+
     def date_to_gap(self, period: Union[str, pd.Period]) -> int:
         """
         Which gap did a particular date occur in?

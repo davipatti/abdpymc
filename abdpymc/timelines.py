@@ -420,7 +420,17 @@ def plot_individual(
     return ax
 
 
-def finish_timeline_ax(ax, data: abd.CombinedTiterData, yaxis=True):
+def finish_timeline_ax(
+    ax: mpl.axes.Axes, data: abd.CombinedTiterData, yaxis=True
+) -> None:
+    """
+    Adjust ticks and labels for a plot which has cohort time on the x-axis.
+
+    Args:
+        ax: Matplotlib ax.
+        data: Cohort data object.
+        yaxis: Whether to setup the y-axis to display titers.
+    """
     ax.grid(zorder=0)
     ax.xaxis.set_minor_locator(mpl.ticker.IndexLocator(base=3, offset=2))
     ax.xaxis.set_major_locator(mpl.ticker.IndexLocator(base=12, offset=2))
