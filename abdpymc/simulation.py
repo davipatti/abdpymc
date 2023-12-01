@@ -3,6 +3,7 @@ from typing import Optional
 from numbers import Number
 from pydantic import (
     BaseModel,
+    NegativeFloat,
     NonNegativeFloat,
     PositiveFloat,
     FiniteFloat,
