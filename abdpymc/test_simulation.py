@@ -104,19 +104,14 @@ class TestIndividual(unittest.TestCase):
         """
         Should be able to instantiate without passing Responses.
         """
-        sim.Individual(
-            pcrpos=np.array([0, 0, 0, 0, 0]),
-            vacs=np.array([0, 0, 1, 0, 0]),
-        )
+        sim.Individual(pcrpos=np.array([0, 0, 0, 0, 0]), vacs=np.array([0, 0, 1, 0, 0]))
 
     def test_vacs_pcrpos(self):
         """
         Test vacs and pcrpos attributes are passed correctly.
         """
         ind = sim.Individual(
-            pcrpos=np.array([0, 0, 0, 0, 0]),
-            vacs=np.array([0, 0, 1, 0, 0]),
-            responses=sim.Responses(s=sim.Response(), n=sim.Response()),
+            pcrpos=np.array([0, 0, 0, 0, 0]), vacs=np.array([0, 0, 1, 0, 0])
         )
         self.assertTrue((ind.vacs == np.array([0, 0, 1, 0, 0])).all())
         self.assertTrue((ind.pcrpos == np.array([0, 0, 0, 0, 0])).all())
@@ -128,13 +123,7 @@ class TestIndividual(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "vaccination and pcrpos are different shapes"
         ):
-            sim.Individual(
-                pcrpos=np.array([0, 0, 1]),
-                vacs=np.array([1, 0, 0, 0]),
-                responses=sim.Responses(
-                    s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)
-                ),
-            )
+            sim.Individual(pcrpos=np.array([0, 0, 1]), vacs=np.array([1, 0, 0, 0]))
 
     def test_vacs_must_be_1d(self):
         """
@@ -146,9 +135,6 @@ class TestIndividual(unittest.TestCase):
             sim.Individual(
                 pcrpos=np.array([[0, 0, 1], [0, 1, 0]]),
                 vacs=np.array([[0, 0, 1], [0, 1, 0]]),
-                responses=sim.Responses(
-                    s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)
-                ),
             )
 
     def test_pcrpos_must_be_1d(self):
@@ -161,20 +147,13 @@ class TestIndividual(unittest.TestCase):
             sim.Individual(
                 pcrpos=np.array([[0, 0, 1], [0, 1, 0]]),
                 vacs=np.array([[0, 0, 1], [0, 1, 0]]),
-                responses=sim.Responses(
-                    s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)
-                ),
             )
 
     def test_infection_responses_returns_3tuple(self):
         """
         Infection responses should return a 3-namedtuple containing np.ndarrays
         """
-        ind = sim.Individual(
-            pcrpos=np.array([0, 0, 1]),
-            vacs=np.array([0, 1, 0]),
-            responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
-        )
+        ind = sim.Individual(pcrpos=np.array([0, 0, 1]), vacs=np.array([0, 1, 0]))
 
         output = ind.infection_responses(lam0=np.array([0.1, 0.1, 0.1]))
 
@@ -196,8 +175,7 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 0]),
             vacs=np.array([0, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(a=0, b=1, init=0.123),
-                n=sim.Response(a=0, b=1, init=0.456),
+                s=sim.Response(init=0.123), n=sim.Response(init=0.456)
             ),
         )
 
@@ -211,13 +189,9 @@ class TestIndividual(unittest.TestCase):
         A PCR+ should cause a 1 in the infections output.
         """
         ind = sim.Individual(
-            pcrpos=np.array([0, 0, 1, 0, 0]),
-            vacs=np.array([0, 0, 0, 0, 0]),
-            responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
+            pcrpos=np.array([0, 0, 1, 0, 0]), vacs=np.array([0, 0, 0, 0, 0])
         )
-
         output = ind.infection_responses(lam0=np.array(np.zeros(5)))
-
         self.assertTrue((output.infections == np.array([0, 0, 1, 0, 0])).all())
 
     def test_pcrpos_response_s(self):
@@ -228,10 +202,7 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 1, 0, 0]),
             vacs=np.array([0, 0, 0, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(
-                    a=0, b=1, temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94, init=-1
-                ),
-                n=sim.Response(),
+                s=sim.Response(temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94, init=-1)
             ),
         )
 
@@ -254,10 +225,7 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 1, 0, 0]),
             vacs=np.array([0, 0, 0, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(),
-                n=sim.Response(
-                    a=0, b=1, temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
-                ),
+                n=sim.Response(temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87),
             ),
         )
 
@@ -280,10 +248,7 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 0, 0, 0]),
             vacs=np.array([0, 0, 1, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(
-                    a=0, b=1, temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94, init=-1
-                ),
-                n=sim.Response(),
+                s=sim.Response(temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94, init=-1)
             ),
         )
 
@@ -307,15 +272,12 @@ class TestIndividual(unittest.TestCase):
             vacs=np.array([0, 0, 1, 0, 0]),
             responses=sim.Responses(
                 s=sim.Response(
-                    a=0,
-                    b=1,
                     temp_rise_i=0.21,
                     temp_rise_v=0.3,
                     perm_rise=0.34,
                     temp_wane=0.94,
                     init=-1,
-                ),
-                n=sim.Response(),
+                )
             ),
         )
 
@@ -338,14 +300,8 @@ class TestIndividual(unittest.TestCase):
             pcrpos=np.array([0, 0, 0, 1, 0]),
             vacs=np.array([0, 0, 1, 0, 0]),
             responses=sim.Responses(
-                s=sim.Response(),
                 n=sim.Response(
-                    a=0,
-                    b=1,
-                    temp_rise_v=0.0,
-                    temp_rise_i=0.89,
-                    perm_rise=2.34,
-                    temp_wane=0.87,
+                    temp_rise_v=0.0, temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
                 ),
             ),
         )
