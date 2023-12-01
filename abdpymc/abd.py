@@ -173,6 +173,9 @@ class CombinedTiterData:
         vacs = np.loadtxt(path("vacs.txt"))
         pcrpos = np.loadtxt(path("pcrpos.txt"))
 
+        if vacs.shape != pcrpos.shape:
+            raise ValueError("vacs and pcrpos are different shapes")
+
         with open(path("t0.txt"), "r") as fobj:
             t0 = pd.Period(fobj.readline())
 

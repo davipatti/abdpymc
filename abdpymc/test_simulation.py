@@ -1,3 +1,4 @@
+from pathlib import Path
 import unittest
 
 import numpy as np
@@ -70,6 +71,12 @@ class TestResponse(unittest.TestCase):
 
 
 class TestResponses(unittest.TestCase):
+    def test_default_responses(self):
+        """
+        Should be able to make an instance without providing any values.
+        """
+        sim.Responses()
+
     def test_protected_n_alone(self):
         """
         Individual should be protected if N titer alone is high enough.
@@ -93,6 +100,15 @@ class TestResponses(unittest.TestCase):
 
 
 class TestIndividual(unittest.TestCase):
+    def test_responses_default_values(self):
+        """
+        Should be able to instantiate without passing Responses.
+        """
+        sim.Individual(
+            pcrpos=np.array([0, 0, 0, 0, 0]),
+            vacs=np.array([0, 0, 1, 0, 0]),
+        )
+
     def test_vacs_pcrpos(self):
         """
         Test vacs and pcrpos attributes are passed correctly.
@@ -341,3 +357,51 @@ class TestIndividual(unittest.TestCase):
 
         # One time step after vaccination, gets infected
         self.assertAlmostEqual(-2 + 0.89 + 2.34, output.n_response[3])
+
+
+class TestCohort(unittest.TestCase):
+    @classmethod
+    def setUp(cls):
+        cohort_data_path = Path(Path(sim.__file__).parent.parent, "data", "cohort_data")
+        cls.cohort = sim.Cohort(random_seed=42, cohort_data_path=cohort_data_path)
+
+    def test_fresh_cohort_lacks_n_titer(self):
+        """
+        Cohort instances shouldn't have s_titer or n_titer attributes when they are
+        instantiated.
+        """
+        self.assertFalse(hasattr(self.cohort, "n_titer"))
+
+    def test_fresh_cohort_lacks_s_titer(self):
+        """
+        Cohort instances shouldn't have s_titer or n_titer attributes when they are
+        instantiated.
+        """
+        self.assertFalse(hasattr(self.cohort, "s_titer"))
+
+    def test_simulate_responses_s_titer_shape(self):
+        """
+        Calling .simulate_responses should attach an s_titer attribute that has the same
+        shape as self.vacs.
+        """
+        lam0 = np.repeat(0.04, self.cohort.n_gaps)
+        self.cohort.simulate_responses(lam0=lam0)
+        self.assertEqual(self.cohort.true_data.vacs.shape, self.cohort.s_titer.shape)
+
+    def test_simulate_responses_n_titer_shape(self):
+        """
+        Calling .simulate_responses should attach an n_titer attribute that has the same
+        shape as self.vacs.
+        """
+        lam0 = np.repeat(0.04, self.cohort.n_gaps)
+        self.cohort.simulate_responses(lam0=lam0)
+        self.assertEqual(self.cohort.true_data.vacs.shape, self.cohort.n_titer.shape)
+
+    def test_simulate_responses_infections_shape(self):
+        """
+        Calling .simulate_responses should attach an infections attribute that has the
+        same shape as self.vacs.
+        """
+        lam0 = np.repeat(0.04, self.cohort.n_gaps)
+        self.cohort.simulate_responses(lam0=lam0)
+        self.assertEqual(self.cohort.true_data.vacs.shape, self.cohort.infections.shape)

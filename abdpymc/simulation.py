@@ -100,8 +100,8 @@ class Response(BaseModel):
 
 @dataclass
 class Responses:
-    s: Response
-    n: Response
+    s: Response = Response()
+    n: Response = Response()
 
     def is_protected(self, s_titer: Number, n_titer: Number) -> bool:
         "Is an individual protected by either an S or N response?"
@@ -121,7 +121,7 @@ class Individual:
 
     pcrpos: np.array
     vacs: np.array
-    responses: Responses
+    responses: Responses = Responses()
 
     def __post_init__(self):
         if self.pcrpos.shape != self.vacs.shape:
@@ -195,57 +195,42 @@ class Individual:
 @dataclass
 class Cohort:
     """
-    vacs_path: Path to file containing an (n_inds, n_gaps) binary array where 1 indicates
-        an individual was vaccinated in that time gap.
-    pcrpos_path: Path to file containing an (n_inds, n_gaps) binary array where 1
-        indicates an individual had a positive PCR test in that time gap.
-    {s,n}_mu: Mean of individuals initial S/N titer.
-    {s,n}_sd: Standard deviation of individuals initial S/N titer.
+    Args:
+        random_seed: Passed to np.random.seed.
+        cohort_data_path: See abdpymc.abd.CombinedTiterData.
+        responses: Defines antibody responses.
 
-    Inferred attributes:
+    Attributes:
         n_inds: Number of individuals.
         n_gaps: Number of time gaps.
     """
 
     random_seed: int
     cohort_data_path: str
-    responses: Responses
+    responses: Responses = Responses()
 
     def __post_init__(self):
-        self.true_data = abd.CombinedTiterData.from_disk(self.cohort_data_path)
-
-        self.vacs = self.true_data.vacs
-        self.pcrpos = self.true_data.pcrpos
-
-        if self.vacs.shape != self.pcrpos.shape:
-            raise ValueError("vaccination and PCR+ data are different shapes")
-
         np.random.seed(self.random_seed)
-
-        self.n_inds, self.n_gaps = self.vacs.shape
-
-        self.s_titer = np.empty(self.vacs.shape)
-        self.n_titer = np.empty(self.vacs.shape)
-        self.infections = np.empty(self.vacs.shape)
-
+        self.true_data = abd.CombinedTiterData.from_disk(self.cohort_data_path)
+        self.n_inds, self.n_gaps = self.true_data.vacs.shape
         self.individuals = [
             Individual(
-                pcrpos=self.pcrpos[i], vacs=self.vacs[i], responses=self.responses
+                pcrpos=self.true_data.pcrpos[i],
+                vacs=self.true_data.vacs[i],
+                responses=self.responses,
             )
             for i in range(self.n_inds)
         ]
 
-    def simulate_responses(self, lam0: np.array):
+    def simulate_responses(self, lam0: np.array) -> None:
         """
         Simulate responses for all individuals. This method updates self.s_titer,
         self.n_titer and self.infections.
         """
-        for i in range(self.n_inds):
-            infection_responses = self.individuals[i].infection_responses(
-                s_init=np.random.normal(loc=self.s_mu, scale=self.s_sd),
-                n_init=np.random.normal(loc=self.n_mu, scale=self.n_sd),
-                lam0=lam0,
-            )
-            self.s_titer[i] = infection_responses.s_response
-            self.n_titer[i] = infection_responses.n_response
-            self.infections[i] = infection_responses.infections
+        infection_responses = [
+            self.individuals[i].infection_responses(lam0=lam0)
+            for i in range(self.n_inds)
+        ]
+        self.s_titer = np.array([value.s_response for value in infection_responses])
+        self.n_titer = np.array([value.n_response for value in infection_responses])
+        self.infections = np.array([value.infections for value in infection_responses])
