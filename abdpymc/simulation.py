@@ -35,6 +35,7 @@ class Response(BaseModel):
     model_config = ConfigDict(extra="forbid")
     a: FiniteFloat = 0.0
     b: PositiveFloat = 1.0
+    init: FiniteFloat = -2.0
     perm_rise: NonNegativeFloat = 2.0
     temp_rise_i: NonNegativeFloat = 1.5
     temp_rise_v: NonNegativeFloat = 2.0
@@ -129,15 +130,11 @@ class Individual:
             raise ValueError("vaccination and pcrpos should be 1 dimensional")
         self.n_gaps = len(self.pcrpos)
 
-    def infection_responses(
-        self, s_init: Number, n_init: Number, lam0: np.array
-    ) -> tuple[np.array, np.array, np.array]:
+    def infection_responses(self, lam0: np.array) -> InfectionResponses:
         """
         Simulate infections and responses.
 
         Args:
-            s_init: Starting S titer.
-            n_init: Starting N titer.
             lam0: Per-time gap infection probability (baseline infection rate).
         """
         if lam0.ndim != 1:
@@ -150,17 +147,14 @@ class Individual:
         n = np.empty(self.n_gaps)
         infections = np.zeros(self.n_gaps)
 
-        s[0] = s_init
-        n[0] = n_init
-
         s_temp = 0
         n_temp = 0
 
         for t in range(self.n_gaps):
             exposed = np.random.uniform() < lam0[t]
 
-            s_prev = s[t - 1] if t > 0 else s_init
-            n_prev = n[t - 1] if t > 0 else n_init
+            s_prev = s[t - 1] if t > 0 else self.responses.s.init
+            n_prev = n[t - 1] if t > 0 else self.responses.n.init
 
             if self.pcrpos[t] == 1:
                 is_infected = True
@@ -192,8 +186,8 @@ class Individual:
                 infections[: t + 1], vaccinations=None
             )
 
-            s[t] = s_init + s_temp + s_perm
-            n[t] = n_init + n_temp + n_perm
+            s[t] = self.responses.s.init + s_temp + s_perm
+            n[t] = self.responses.n.init + n_temp + n_perm
 
         return InfectionResponses(infections=infections, s_response=s, n_response=n)
 
@@ -216,10 +210,6 @@ class Cohort:
     random_seed: int
     cohort_data_path: str
     responses: Responses
-    s_mu: Number = -2
-    n_mu: Number = -2
-    s_sd: Number = 1
-    n_sd: Number = 1
 
     def __post_init__(self):
         self.true_data = abd.CombinedTiterData.from_disk(self.cohort_data_path)
@@ -252,8 +242,8 @@ class Cohort:
         """
         for i in range(self.n_inds):
             infection_responses = self.individuals[i].infection_responses(
-                s_init=np.random.randn() * self.s_sd + self.s_mu,
-                n_init=np.random.randn() * self.n_sd + self.n_mu,
+                s_init=np.random.normal(loc=self.s_mu, scale=self.s_sd),
+                n_init=np.random.normal(loc=self.n_mu, scale=self.n_sd),
                 lam0=lam0,
             )
             self.s_titer[i] = infection_responses.s_response

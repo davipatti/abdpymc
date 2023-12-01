@@ -160,9 +160,7 @@ class TestIndividual(unittest.TestCase):
             responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
         )
 
-        output = ind.infection_responses(
-            s_init=0, n_init=0, lam0=np.array([0.1, 0.1, 0.1])
-        )
+        output = ind.infection_responses(lam0=np.array([0.1, 0.1, 0.1]))
 
         self.assertIsInstance(output, sim.InfectionResponses)
         self.assertEqual(3, len(output))
@@ -181,12 +179,13 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 0]),
             vacs=np.array([0, 0, 0]),
-            responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
+            responses=sim.Responses(
+                s=sim.Response(a=0, b=1, init=0.123),
+                n=sim.Response(a=0, b=1, init=0.456),
+            ),
         )
 
-        output = ind.infection_responses(
-            s_init=0.123, n_init=0.456, lam0=np.array(np.zeros(3))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(3)))
 
         self.assertTrue((output.s_response == 0.123).all())
         self.assertTrue((output.n_response == 0.456).all())
@@ -201,9 +200,7 @@ class TestIndividual(unittest.TestCase):
             responses=sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1)),
         )
 
-        output = ind.infection_responses(
-            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(5)))
 
         self.assertTrue((output.infections == np.array([0, 0, 1, 0, 0])).all())
 
@@ -216,15 +213,13 @@ class TestIndividual(unittest.TestCase):
             vacs=np.array([0, 0, 0, 0, 0]),
             responses=sim.Responses(
                 s=sim.Response(
-                    a=0, b=1, temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94
+                    a=0, b=1, temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94, init=-1
                 ),
-                n=sim.Response(a=0, b=1),
+                n=sim.Response(),
             ),
         )
 
-        output = ind.infection_responses(
-            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(5)))
 
         # Before the PCR+
         self.assertTrue((np.array([-1, -1]) == output.s_response[:1]).all())
@@ -250,9 +245,7 @@ class TestIndividual(unittest.TestCase):
             ),
         )
 
-        output = ind.infection_responses(
-            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(5)))
 
         # Before the PCR+
         self.assertTrue((np.array([-2, -2]) == output.n_response[:1]).all())
@@ -272,17 +265,13 @@ class TestIndividual(unittest.TestCase):
             vacs=np.array([0, 0, 1, 0, 0]),
             responses=sim.Responses(
                 s=sim.Response(
-                    a=0, b=1, temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94
+                    a=0, b=1, temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94, init=-1
                 ),
-                n=sim.Response(
-                    a=0, b=1, temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
-                ),
+                n=sim.Response(),
             ),
         )
 
-        output = ind.infection_responses(
-            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(5)))
 
         # Before the vaccination
         self.assertTrue((np.array([-1, -1]) == output.s_response[:1]).all())
@@ -308,14 +297,13 @@ class TestIndividual(unittest.TestCase):
                     temp_rise_v=0.3,
                     perm_rise=0.34,
                     temp_wane=0.94,
+                    init=-1,
                 ),
                 n=sim.Response(),
             ),
         )
 
-        output = ind.infection_responses(
-            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(5)))
 
         # Before vaccination
         self.assertTrue((np.array([-1, -1]) == output.s_response[:1]).all())
@@ -346,9 +334,7 @@ class TestIndividual(unittest.TestCase):
             ),
         )
 
-        output = ind.infection_responses(
-            s_init=-1, n_init=-2, lam0=np.array(np.zeros(5))
-        )
+        output = ind.infection_responses(lam0=np.array(np.zeros(5)))
 
         # Before PCR+ all values should be initial
         self.assertTrue((np.array([-2, -2, -2]) == output.n_response[:3]).all())
