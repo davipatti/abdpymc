@@ -10,6 +10,7 @@ from pydantic import (
     NonNegativeFloat,
     PositiveFloat,
 )
+from dataclasses import dataclass
 
 import pandas as pd
 import numpy as np
@@ -25,7 +26,7 @@ InfectionResponses = namedtuple(
 class BaseModelNoExtra(BaseModel):
     """Pydantic class that prevents additional fields being passed."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
 
 class Protection(BaseModelNoExtra):
@@ -166,7 +167,8 @@ class Antibodies(BaseModelNoExtra):
         self.n.plot_protection(lo=lo, hi=hi, label="N", **kwds)
 
 
-class Individual(BaseModelNoExtra):
+@dataclass
+class Individual:
     """
     {pcrpos,vacs}: Both (n_gaps,) binary arrays indicating when individuals had a PCR+
         result or were vaccinated.
@@ -243,7 +245,8 @@ class Individual(BaseModelNoExtra):
         return InfectionResponses(infections=infections, s_response=s, n_response=n)
 
 
-class Cohort(BaseModelNoExtra):
+@dataclass
+class Cohort:
     """
     Args:
         random_seed: Passed to np.random.seed.
