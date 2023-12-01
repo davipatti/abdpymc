@@ -7,12 +7,16 @@ from pydantic import ValidationError
 import abdpymc.simulation as sim
 
 
-class TestResponse(unittest.TestCase):
+class TestProtection(unittest.TestCase):
+    """
+    Tests for abdpymc.simulation.Protection
+    """
+
     def test_p_protection_high_titer(self):
         """
         At a very high titer, probability of protection should be very close to 1.
         """
-        p = sim.Response(a=0, b=1).p_protection(100)
+        p = sim.Protection(a=0, b=1).p_protection(100)
         self.assertAlmostEqual(1.0, p)
 
     def test_p_protection_different_a(self):
@@ -21,8 +25,8 @@ class TestResponse(unittest.TestCase):
         positive b).
         """
         self.assertLess(
-            sim.Response(a=1, b=1).p_protection(0),
-            sim.Response(a=0, b=1).p_protection(0),
+            sim.Protection(a=1, b=1).p_protection(0),
+            sim.Protection(a=0, b=1).p_protection(0),
         )
 
     def test_p_protection_different_titer(self):
@@ -30,72 +34,89 @@ class TestResponse(unittest.TestCase):
         Probability of protection should be higher at a higher titer (when b is
         positive).
         """
-        ag = sim.Response(a=0, b=1)
+        ag = sim.Protection(a=0, b=1)
         self.assertGreater(ag.p_protection(1), ag.p_protection(0))
+
+
+class TestDynamics(unittest.TestCase):
+    """
+    Tests for abdpymc.simulation.Dynamics
+    """
 
     def test_temp_wane_must_be_between_0_1(self):
         with self.assertRaisesRegex(ValidationError, "temp_wane"):
-            sim.Response(temp_wane=1.5)
+            sim.Dynamics(temp_wane=1.5)
 
         with self.assertRaisesRegex(ValidationError, "temp_wane"):
-            sim.Response(temp_wane=-0.5)
+            sim.Dynamics(temp_wane=-0.5)
 
     def test_temp_rise_i_must_be_positive(self):
         with self.assertRaisesRegex(ValidationError, "temp_rise_i"):
-            sim.Response(temp_rise_i=-1)
+            sim.Dynamics(temp_rise_i=-1)
 
     def test_perm_rise_must_be_positive(self):
         with self.assertRaisesRegex(ValidationError, "perm_rise"):
-            sim.Response(perm_rise=-1)
+            sim.Dynamics(perm_rise=-1)
 
     def test_next_temp_response(self):
-        ag = sim.Response(temp_wane=0.95)
+        ag = sim.Dynamics(temp_wane=0.95)
         temp_response = ag.next_temp_response(prev=1.0, is_infected=False)
         self.assertEqual(1.0 * 0.95, temp_response)
 
     def test_next_temp_response_with_infection(self):
-        ag = sim.Response(temp_wane=0.95, temp_rise_i=1.8)
+        ag = sim.Dynamics(temp_wane=0.95, temp_rise_i=1.8)
         temp_response = ag.next_temp_response(prev=1.0, is_infected=True)
         self.assertEqual(1.0 * 0.95 + 1.8, temp_response)
 
     def test_cant_pass_unknown_arg(self):
         with self.assertRaisesRegex(ValidationError, "Extra inputs are not permitted"):
-            sim.Response(xyz=123)
+            sim.Dynamics(xyz=123)
 
     def test_perm_response_incl_vaccination(self):
-        ag = sim.Response(temp_wane=0.95, temp_rise_i=1.8, perm_rise=2.2)
+        ag = sim.Dynamics(temp_wane=0.95, temp_rise_i=1.8, perm_rise=2.2)
         perm_response = ag.perm_response(
             infections=np.zeros(5), vaccinations=np.array([0, 0, 1, 0, 0])
         )
         self.assertEqual(2.2, perm_response)
 
 
-class TestResponses(unittest.TestCase):
+class TestAntibodies(unittest.TestCase):
+    """Tests for abdpymc.simulation.Antibodies"""
+
     def test_default_responses(self):
         """
         Should be able to make an instance without providing any values.
         """
-        sim.Responses()
+        sim.Antibodies()
 
     def test_protected_n_alone(self):
         """
         Individual should be protected if N titer alone is high enough.
         """
-        imm = sim.Responses(s=sim.Response(a=100, b=1), n=sim.Response(a=-100, b=1))
+        imm = sim.Antibodies(
+            s=sim.Antibody(protection=sim.Protection(a=100, b=1)),
+            n=sim.Antibody(protection=sim.Protection(a=-100, b=1)),
+        )
         self.assertTrue(imm.is_protected(s_titer=0, n_titer=0))
 
     def test_protected_s_alone(self):
         """
         Individual should be protected if S titer alone is high enough.
         """
-        imm = sim.Responses(s=sim.Response(a=-100, b=1), n=sim.Response(a=100, b=1))
+        imm = sim.Antibodies(
+            s=sim.Antibody(protection=sim.Protection(a=-100, b=1)),
+            n=sim.Antibody(protection=sim.Protection(a=100, b=1)),
+        )
         self.assertTrue(imm.is_protected(s_titer=0, n_titer=0))
 
     def test_not_protected(self):
         """
         Individual should not be protected if both S an N titer are very low.
         """
-        imm = sim.Responses(s=sim.Response(a=0, b=1), n=sim.Response(a=0, b=1))
+        imm = sim.Antibodies(
+            s=sim.Antibody(protection=sim.Protection(a=0, b=1)),
+            n=sim.Antibody(protection=sim.Protection(a=0, b=1)),
+        )
         self.assertFalse(imm.is_protected(s_titer=-100, n_titer=-100))
 
 
@@ -174,8 +195,9 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 0]),
             vacs=np.array([0, 0, 0]),
-            responses=sim.Responses(
-                s=sim.Response(init=0.123), n=sim.Response(init=0.456)
+            ab=sim.Antibodies(
+                s=sim.Antibody(dynamics=sim.Dynamics(init=0.123)),
+                n=sim.Antibody(dynamics=sim.Dynamics(init=0.456)),
             ),
         )
 
@@ -201,8 +223,12 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 1, 0, 0]),
             vacs=np.array([0, 0, 0, 0, 0]),
-            responses=sim.Responses(
-                s=sim.Response(temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94, init=-1)
+            ab=sim.Antibodies(
+                s=sim.Antibody(
+                    dynamics=sim.Dynamics(
+                        temp_rise_i=0.3, perm_rise=0.34, temp_wane=0.94, init=-1
+                    )
+                )
             ),
         )
 
@@ -224,8 +250,12 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 1, 0, 0]),
             vacs=np.array([0, 0, 0, 0, 0]),
-            responses=sim.Responses(
-                n=sim.Response(temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87),
+            ab=sim.Antibodies(
+                n=sim.Antibody(
+                    dynamics=sim.Dynamics(
+                        temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
+                    )
+                )
             ),
         )
 
@@ -247,8 +277,12 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 0, 0, 0]),
             vacs=np.array([0, 0, 1, 0, 0]),
-            responses=sim.Responses(
-                s=sim.Response(temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94, init=-1)
+            ab=sim.Antibodies(
+                s=sim.Antibody(
+                    dynamics=sim.Dynamics(
+                        temp_rise_v=0.3, perm_rise=0.34, temp_wane=0.94, init=-1
+                    )
+                )
             ),
         )
 
@@ -270,13 +304,15 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 0, 1, 0]),
             vacs=np.array([0, 0, 1, 0, 0]),
-            responses=sim.Responses(
-                s=sim.Response(
-                    temp_rise_i=0.21,
-                    temp_rise_v=0.3,
-                    perm_rise=0.34,
-                    temp_wane=0.94,
-                    init=-1,
+            ab=sim.Antibodies(
+                s=sim.Antibody(
+                    dynamics=sim.Dynamics(
+                        temp_rise_i=0.21,
+                        temp_rise_v=0.3,
+                        perm_rise=0.34,
+                        temp_wane=0.94,
+                        init=-1,
+                    )
                 )
             ),
         )
@@ -299,9 +335,14 @@ class TestIndividual(unittest.TestCase):
         ind = sim.Individual(
             pcrpos=np.array([0, 0, 0, 1, 0]),
             vacs=np.array([0, 0, 1, 0, 0]),
-            responses=sim.Responses(
-                n=sim.Response(
-                    temp_rise_v=0.0, temp_rise_i=0.89, perm_rise=2.34, temp_wane=0.87
+            ab=sim.Antibodies(
+                n=sim.Antibody(
+                    dynamics=sim.Dynamics(
+                        temp_rise_v=0.0,
+                        temp_rise_i=0.89,
+                        perm_rise=2.34,
+                        temp_wane=0.87,
+                    )
                 ),
             ),
         )
