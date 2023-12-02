@@ -672,15 +672,15 @@ class MultipleTimeChunks(ABC):
     """
 
     def constrain_infections(self, i_raw: at.TensorLike) -> at.TensorLike:
-        # Include PCR+ in infection matrix
-        i_pcrpos = self.incorporate_pcrpos(i_raw)
-
         # Prevent multiple exposures in a single chunk
-        i_single_inf_per_chunk = self.mask_multiple_infections(i_pcrpos)
+        i_raw = self.mask_multiple_infections(i_raw)
 
-        # Finally, prevent infections occuring within three months of each other,
+        # Include PCR+ in infection matrix
+        i_raw = self.incorporate_pcrpos(i_raw)
+
+        # Finally, prevent infections occurring within three months of each other,
         # regardless of which time chunk they occur in
-        return pm.Deterministic("i", mask_three_gaps(i_single_inf_per_chunk))
+        return pm.Deterministic("i", mask_three_gaps(i_raw))
 
 
 class TwoTimeChunks(MultipleTimeChunks):
