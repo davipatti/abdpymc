@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-from typing import Union, Iterable, Optional
 import math
 import os
 from abc import ABC
+from typing import Iterable, Optional, Union
 
 import arviz as az
 import numpy as np
@@ -45,7 +45,7 @@ class CombinedTiterData:
         self, t0: pd.Period, df: pd.DataFrame, vacs: np.ndarray, pcrpos: np.ndarray
     ):
         """
-        Manage OD, PCR+ and vaccination data for an antibody dyanamics analysis.
+        Manage OD, PCR+ and vaccination data for an antibody dynamics analysis.
 
         Args:
             t0: The fist month in the analysis. All gap indexes are relative to this
@@ -62,7 +62,7 @@ class CombinedTiterData:
             df_n: Only the N data.
 
         In df_s and df_n the sample_{s,n}_i column enumerates unique samples that have
-        been meausured for each antigen.
+        been measured for each antigen.
         """
 
         self.df = df
@@ -108,7 +108,7 @@ class CombinedTiterData:
 
         self.plot_conf = PlotConfig(self)
 
-        # gap index of the last sample for each indiviudal
+        # gap index of the last sample for each individual
         self.last_gap = (
             self.df.groupby("individual_i")
             .aggregate({"elapsed_months": "max"})
@@ -158,11 +158,11 @@ class CombinedTiterData:
     @classmethod
     def from_disk(cls, directory: str) -> "CombinedTiterData":
         """
-        Generate an instance of CombinedAllITitiersData by reading data from disk,
+        Generate an instance of CombinedAllITitersData by reading data from disk,
         rather than making calls to the mfsera package.
 
         Args:
-            direcotry: Directory containint df.csv, vacs.txt, pcrpos.txt and t0.txt.
+            directory: Directory containing df.csv, vacs.txt, pcrpos.txt and t0.txt.
                 See to_disk.
         """
 
@@ -222,7 +222,7 @@ def temp_response(exposure, n_inds, temp, rho):
 
 def perm_response(exposure, perm):
     """
-    Compute a permanent reponse.
+    Compute a permanent response.
 
     The value is perm after the first exposure.
 
@@ -358,7 +358,7 @@ def dirichlet_multinomial_infections(
 
         To specify the dirichlet probabilities such that gaps sum to 1 have to specify
         (ind x gap) Dirichlet and Multinomial distributions. But everything else was
-        already implemented on (gap x ind) arrays. Hence the need to transopose the `i`
+        already implemented on (gap x ind) arrays. Hence the need to transpose the `i`
         array here.
 
     Args:
@@ -505,7 +505,7 @@ def unique_ids(values: Iterable) -> list[int]:
 class PlotConfig:
     def __init__(self, data: CombinedTiterData):
         """
-        Commonly used attributes in plotting indivdiual timeseries.
+        Commonly used attributes in plotting individual timeseries.
         """
         self.s = dict(it="ab_s_mu", c=DARKORANGE)
         self.n = dict(it="ab_n_mu", c=BLUEGREY)
@@ -575,7 +575,7 @@ def logistic(x, a, b, d):
 
 def mask_three_gaps(arr: at.TensorLike) -> at.TensorLike:
     """
-    Prevent an infection from occuring within three months of another infection.
+    Prevent an infection from occurring within three months of another infection.
 
     Args:
         arr: (n_gaps, n_inds) tensor containing 1 if an individual was infected in a
@@ -596,7 +596,7 @@ def mask_three_gaps(arr: at.TensorLike) -> at.TensorLike:
 
 def mask_future_infection(i0, im3, im2, im1):
     """
-    Prevent infection if infections have occured in any of the previous
+    Prevent infection if infections have occurred in any of the previous
     three months.
 
     All arguments are ints (0/1) that indicate whether an infection occurred in
@@ -644,7 +644,7 @@ class OneTimeChunk:
         A class that handles a single time chunk.
 
         In a single time chunk multiple infections are allowed, and PCR+ data do not
-        take any special precendece over probabalistically inferred infections.
+        take any special precedence over probabilistically inferred infections.
 
         Implementation note:
             This class does not need to inherit from the MultipleTimeChunks ABC as its
@@ -667,8 +667,8 @@ class OneTimeChunk:
 
 class MultipleTimeChunks(ABC):
     """
-    An abstract base class that defines how probabilistcally inferred infections and PCR+
-    data are constrained.
+    An abstract base class that defines how probabilistically inferred infections and
+    PCR+ data are constrained.
     """
 
     def constrain_infections(self, i_raw: at.TensorLike) -> at.TensorLike:
@@ -824,10 +824,10 @@ def mask_multiple_infections_3_chunks(arr, split0, split1):
 
 def mask_multiple_infections(arr: at.TensorLike):
     """
-    Prevent successive infections occuring.
+    Prevent successive infections occurring.
 
-    The following matrix encodes when indiviudals where infected. Each column is a
-    different indiviudal, each row is a different time gap.
+    The following matrix encodes when individuals where infected. Each column is a
+    different individual, each row is a different time gap.
 
     [
         [1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1],
