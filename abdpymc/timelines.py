@@ -577,8 +577,8 @@ def main():
     )
     parser.add_argument(
         "--ititers_data",
-        help="Path to directory for generating CombinedAllITitersData object. "
-        "default=cohort_data",
+        help="Path to directory for generating CombinedAllITitersData object "
+        "(default=cohort_data).",
         default="cohort_data",
     )
     parser.add_argument(
@@ -605,10 +605,16 @@ def main():
         type=int,
     )
     parser.add_argument(
-        "--nrows", help="Number of rows when passing specific individuals.", type=int
+        "--nrows",
+        help="Number of rows when passing specific individuals (default=10).",
+        type=int,
+        default=10,
     )
     parser.add_argument(
-        "--ncols", help="Number of columns when passing specific individuals.", type=int
+        "--ncols",
+        help="Number of columns when passing specific individuals (default=25).",
+        type=int,
+        default=25,
     )
     parser.add_argument(
         "--fname",
