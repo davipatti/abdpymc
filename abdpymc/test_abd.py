@@ -2,9 +2,11 @@
 
 import logging
 import unittest
+from pathlib import Path
 
 import numpy as np
 import pytensor.tensor as at
+import pymc as pm
 
 import abdpymc as abd
 
@@ -501,6 +503,89 @@ class TestInvLogistic(unittest.TestCase):
         """
         kwds = dict(a=-0.123, b=1.357, d=7.78)
         self.assertEqual(3, abd.logistic(abd.invlogistic(3, **kwds), **kwds))
+
+
+class CombinedTiterDataPath:
+    @classmethod
+    def setUpClass(cls):
+        cls.directory = Path(
+            Path(abd.__file__).parent.parent, "data", "test_data", "cohort_data"
+        )
+
+
+class TestCombinedTiterData(CombinedTiterDataPath, unittest.TestCase):
+    """
+    Tests for abdpymc.CombinedTiterData.
+    """
+
+    def test_coords_inds(self):
+        """
+        `ind` coord should be 0, ..., n_inds - 1
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        self.assertEqual(list(range(10)), list(data.coords["ind"]))
+
+    def test_coords_gaps(self):
+        """
+        `gap` coord should be 0, ..., n_gaps - 1
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        self.assertEqual(list(range(26)), list(data.coords["gap"]))
+
+
+class TestModel(CombinedTiterDataPath, unittest.TestCase):
+    """
+    Tests for abdpymc.model.
+    """
+
+    def test_test_data(self):
+        """
+        Test the test data is as expected.
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        self.assertEqual(10, data.n_inds)
+        self.assertEqual(26, data.n_gaps)
+        self.assertEqual((10, 26), data.vacs.shape)
+        self.assertEqual((10, 26), data.pcrpos.shape)
+
+    def test_indexes_no_splits(self):
+        """
+        Test that the only indexes present are gap and ind.
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        with abd.model(data=data):
+            idata = pm.sample_prior_predictive(samples=1)
+        self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
+
+    def test_indexes_split_delta(self):
+        """
+        Test that the only indexes present are gap and ind.
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        splits = data.calculate_splits(delta=True, omicron=False)
+        with abd.model(data=data, splits=splits):
+            idata = pm.sample_prior_predictive(samples=1)
+        self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
+
+    def test_indexes_split_omicron(self):
+        """
+        Test that the only indexes present are gap and ind.
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        splits = data.calculate_splits(delta=False, omicron=True)
+        with abd.model(data=data, splits=splits):
+            idata = pm.sample_prior_predictive(samples=1)
+        self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
+
+    def test_indexes_split_delta_omicron(self):
+        """
+        Test that the only indexes present are gap and ind.
+        """
+        data = abd.CombinedTiterData.from_disk(self.directory)
+        splits = data.calculate_splits(delta=True, omicron=True)
+        with abd.model(data=data, splits=splits):
+            idata = pm.sample_prior_predictive(samples=1)
+        self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
 
 
 if __name__ == "__main__":

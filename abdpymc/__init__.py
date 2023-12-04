@@ -10,6 +10,7 @@ from .abd import (
     mask_multiple_infections_3_chunks,
     mask_multiple_infections,
     mask_three_gaps,
+    model,
     TwoTimeChunks,
 )
 from . import simulation
@@ -27,7 +28,7 @@ __all__ = [
     "mask_multiple_infections_3_chunks",
     "mask_multiple_infections",
     "mask_three_gaps",
-    "model_dirmul",
+    "model",
     "simulation",
     "timelines",
     "TwoTimeChunks",

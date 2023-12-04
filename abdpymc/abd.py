@@ -297,7 +297,7 @@ def model_popab_vacsep_nonwane_s(
     # response that decays over time for vaccinations and infections
     rho = pm.Beta(var("rho"), alpha=10.0, beta=1.0)
     p_waner = pm.Beta(var("p_waner"), alpha=1.0, beta=1.0)  # baseline p(waner)
-    waner = pm.Bernoulli(var("waner"), p=p_waner, shape=data.n_inds)
+    waner = pm.Bernoulli(var("waner"), p=p_waner, dims="ind")
     rho_per_ind = rho * waner + 1 - waner  # waner=1 -> rho=rho, waner=0 -> rho=1
 
     # Infection response
@@ -587,7 +587,7 @@ class OneTimeChunk:
         # Here, ensure max value in i_pcrpos is 1
         i_pcrpos_max1 = at.where(i_pcrpos > 0.0, 1.0, 0.0)
 
-        return pm.Deterministic("i", mask_three_gaps(i_pcrpos_max1))
+        return pm.Deterministic("i", mask_three_gaps(i_pcrpos_max1), dims=GAP_IND)
 
 
 class MultipleTimeChunks(ABC):
@@ -605,7 +605,7 @@ class MultipleTimeChunks(ABC):
 
         # Finally, prevent infections occurring within three months of each other,
         # regardless of which time chunk they occur in
-        return pm.Deterministic("i", mask_three_gaps(i_raw))
+        return pm.Deterministic("i", mask_three_gaps(i_raw), dims=GAP_IND)
 
 
 class TwoTimeChunks(MultipleTimeChunks):
