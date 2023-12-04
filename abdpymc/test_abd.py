@@ -491,7 +491,14 @@ class TestTwoTimeChunks(unittest.TestCase):
 
 
 class TestInvLogistic(unittest.TestCase):
+    """
+    Tests for abdpymc.logistic and abdpymc.invlogistic.
+    """
+
     def test_invlogistic_is_inverse_of_logistic(self):
+        """
+        invlogistic should be the inverse of logistic.
+        """
         kwds = dict(a=-0.123, b=1.357, d=7.78)
         self.assertEqual(3, abd.logistic(abd.invlogistic(3, **kwds), **kwds))
 
