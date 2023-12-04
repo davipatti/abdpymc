@@ -3,7 +3,7 @@
 import math
 import os
 from abc import ABC
-from typing import Iterable, Optional, Union
+from typing import Generator, Iterable, Optional, Union
 
 import arviz as az
 import numpy as np
@@ -19,8 +19,10 @@ IND_GAP = "ind", "gap"
 
 
 class AntigenTiterData:
-    def __init__(self, ag: str, df: pd.DataFrame):
+    def __init__(self, ag: str, df: pd.DataFrame) -> None:
         """
+        Titer data for a single antigen.
+
         Args:
             ag: One letter name of antigen e.g. S/N.
             df: DataFrame.
@@ -43,7 +45,7 @@ class AntigenTiterData:
 class CombinedTiterData:
     def __init__(
         self, t0: pd.Period, df: pd.DataFrame, vacs: np.ndarray, pcrpos: np.ndarray
-    ):
+    ) -> None:
         """
         Manage OD, PCR+ and vaccination data for an antibody dynamics analysis.
 
@@ -320,26 +322,6 @@ def model_popab_vacsep_nonwane_s(
     return mu[data.idx_gap, data.idx_ind]
 
 
-def make_time_chunks(
-    pcrpos: at.TensorLike,
-    splits: Optional[Union[tuple[int], tuple[int, int]]] = None,
-):
-    """
-    Helper function to make a TimeChunks class based on the number of splits.
-    """
-    if splits is None or len(splits) == 0:
-        return OneTimeChunk(pcrpos=pcrpos)
-
-    elif len(splits) == 1:
-        return TwoTimeChunks(split=splits[0], pcrpos=pcrpos)
-
-    elif len(splits) == 2:
-        return ThreeTimeChunks(splits=splits, pcrpos=pcrpos)
-
-    else:
-        raise NotImplementedError("only implemented 1-3 time chunks (0-2 splits)")
-
-
 def model(
     data: CombinedTiterData,
     splits: Optional[Union[tuple[int], tuple[int, int]]] = None,
@@ -467,12 +449,18 @@ def numeric_to_titer(n, start, fold=4):
         return t
 
 
-def months_from(t0: pd.Period, n: int) -> pd.Period:
-    """Generate n month periods starting from t0"""
-    curr = t0
+def months_from(t0: pd.Period, n: int) -> Generator[pd.Period, None, None]:
+    """
+    Generate n month periods starting from t0.
+
+    Args:
+        t0: First period.
+        n: Number of periods to generate.
+    """
+    curr = pd.Period(t0)
     for _ in range(n):
         yield curr
-        curr += pd.tseries.offsets.MonthEnd(1)
+        curr += 1
 
 
 def year_tick_labels(t0: pd.Period, n_months: int) -> tuple[np.ndarray, np.ndarray]:
@@ -802,6 +790,26 @@ def mask_multiple_infections_2_chunks(arr: at.TensorLike, split: int):
     return at.concatenate(
         (mask_multiple_infections(arr[:split]), mask_multiple_infections(arr[split:]))
     )
+
+
+def make_time_chunks(
+    pcrpos: at.TensorLike,
+    splits: Optional[Union[tuple[int], tuple[int, int]]] = None,
+) -> OneTimeChunk | TwoTimeChunks | ThreeTimeChunks:
+    """
+    Helper function to make a TimeChunks class based on the number of splits.
+    """
+    if splits is None or len(splits) == 0:
+        return OneTimeChunk(pcrpos=pcrpos)
+
+    elif len(splits) == 1:
+        return TwoTimeChunks(split=splits[0], pcrpos=pcrpos)
+
+    elif len(splits) == 2:
+        return ThreeTimeChunks(splits=splits, pcrpos=pcrpos)
+
+    else:
+        raise NotImplementedError("only implemented 1-3 time chunks (0-2 splits)")
 
 
 def main():
