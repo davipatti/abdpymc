@@ -316,6 +316,10 @@ def plot_individual(
             else post_mean.sel(gap=slice(None, last_gap), ind=ind_i).i
         )
 
+    import pdb
+
+    pdb.set_trace()
+
     if show_inf_prob:
         ax.stairs(
             scale(inf_p),
@@ -483,9 +487,8 @@ def plot_multiple_individuals(
 def plot_multiple_individuals_batches(
     individuals: Iterable[int],
     fname: str,
-    batch_size: int = 250,
-    nrows: int = 25,
-    ncols: int = 10,
+    nrows: int = 10,
+    ncols: int = 25,
     **kwds,
 ):
     """
@@ -494,10 +497,11 @@ def plot_multiple_individuals_batches(
     Args:
         individuals: Indexes of individuals to plot.
         fname: Should contain two '{}' to for the first and last individual in the group.
+        nrows: Number of rows of axes.
+        ncols: Number of columns of axes.
         **kwds: Passed to plot_multiple_individuals.
     """
-    if nrows * ncols != batch_size:
-        raise ValueError("nrows x ncols must equal batch_size")
+    batch_size = nrows * ncols
 
     for batch in grouper(individuals, batch_size):
         plot_multiple_individuals(nrows=nrows, ncols=ncols, individuals=batch, **kwds)
@@ -606,15 +610,15 @@ def main():
     )
     parser.add_argument(
         "--nrows",
-        help="Number of rows when passing specific individuals (default=10).",
+        help="Number of rows when passing specific individuals (default=19).",
         type=int,
-        default=10,
+        default=19,
     )
     parser.add_argument(
         "--ncols",
-        help="Number of columns when passing specific individuals (default=25).",
+        help="Number of columns when passing specific individuals (default=16).",
         type=int,
-        default=25,
+        default=16,
     )
     parser.add_argument(
         "--fname",
