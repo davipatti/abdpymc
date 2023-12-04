@@ -1,4 +1,4 @@
 #!/bin/sh
 
-pytest --disable-warnings --no-header
 python -W ignore::UserWarning:: -m flake8 --ignore=E501,F821,E203,W503
+pytest --disable-warnings --no-header
