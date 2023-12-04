@@ -407,7 +407,7 @@ class TestIncorporatePCRPos(unittest.TestCase):
             ]
         )
         out = abd.incorporate_pcrpos(i_raw=i_raw, pcrpos=pcr_pos).eval()
-        self.assertTrue(np.all(np.equal(expect, out)))
+        self.assertTrue(np.all(np.equal(expect, out)), f"output:\n{np.array(out)}")
 
 
 class TestTwoTimeChunks(unittest.TestCase):
@@ -490,6 +490,128 @@ class TestTwoTimeChunks(unittest.TestCase):
         ]
 
         self.assertTrue(np.all(np.equal(expect, output)))
+
+    def test_multiple_infections_survive_incorporate_pcrpos(self):
+        """
+        Test that TwoTimeChunks.incorporate_pcrpos
+        """
+        pcrpos = [
+            [0],
+            [0],
+            [0],
+            [1],
+            # ------ Split ---
+            [0],
+            [1],
+            [0],
+            [0],
+            [1],
+            [0],
+        ]
+        i_raw = [
+            [0],
+            [0],
+            [0],
+            [0],
+            # ------ Split ---
+            [0],
+            [0],
+            [0],
+            [0],
+            [0],
+            [0],
+        ]
+
+        ttc = abd.TwoTimeChunks(split=4, pcrpos=at.as_tensor(pcrpos))
+
+        expect = [
+            [0],
+            [0],
+            [0],
+            [1],
+            # ------ Split ---
+            [0],
+            [1],
+            [0],
+            [0],
+            [1],
+            [0],
+        ]
+
+        with pm.Model(coords=dict(gap=range(10), ind=range(2))):
+            output = ttc.incorporate_pcrpos(i_raw=at.as_tensor(i_raw)).eval()
+
+        self.assertTrue(
+            np.all(np.equal(expect, output)), f"output:\n{np.array(output)}"
+        )
+
+
+class TestTwoTimeChunksConstrainInfections(unittest.TestCase):
+    """
+    MultipleTimeChunks is the base class for TestTwoTimeChunks.
+
+    MultipleTimeChunks.constrain_infections combines mask_multiple_infections and
+    incorporate_pcrpos.
+    """
+
+    def test_constrain_infections(self):
+        """
+        Testing the behaviour of TwoTimeChunks.constrain_infections.
+
+        Columns:
+            1: Two PCR+ separated by 3 gaps - expect both in output.
+            2: Two PCR+ separated by 2 gaps - expect first in output.
+            3: Three PCR+ separated each by 2 gaps - expect first and third.
+        """
+        pcrpos = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 1],
+            # ------ Split ---
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 1],
+            [0, 0, 0],
+            [0, 0, 0],
+            [1, 1, 1],
+        ]
+        i_raw = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            # ------ Split ---
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+        ]
+
+        ttc = abd.TwoTimeChunks(split=4, pcrpos=at.as_tensor(pcrpos))
+
+        expect = [
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 1],
+            # ------ Split ---
+            [0, 0, 0],
+            [1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0],
+            [0, 0, 0],
+            [1, 0, 1],
+        ]
+
+        with pm.Model(coords=dict(gap=range(10), ind=range(3))):
+            output = ttc.constrain_infections(i_raw=at.as_tensor(i_raw)).eval()
+
+        self.assertTrue(
+            np.all(np.equal(expect, output)), f"output:\n{np.array(output)}"
+        )
 
 
 class TestInvLogistic(unittest.TestCase):
