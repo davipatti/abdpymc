@@ -340,81 +340,6 @@ def make_time_chunks(
         raise NotImplementedError("only implemented 1-3 time chunks (0-2 splits)")
 
 
-def dirichlet_multinomial_infections(
-    n_gaps: int, n_inds: int, suffix: Union[str, int]
-) -> at.TensorVariable:
-    """
-    Specify a (n_gaps x n_inds) array of infections.
-
-    Implementation notes:
-        Variables:
-            - `p_any_i` is the probability that n=1 for across all individuals
-            - `n` controls how many infections each individual gets in a given chunk of
-              time gaps
-            - `p` is the probability an individual gets infected in any given gap.
-              Dirichlet across gaps means that probabilities sum to one across gaps for
-              each individual.
-            - `i` is a matrix of 0/1 indicating who got infected when
-
-        To specify the dirichlet probabilities such that gaps sum to 1 have to specify
-        (ind x gap) Dirichlet and Multinomial distributions. But everything else was
-        already implemented on (gap x ind) arrays. Hence the need to transpose the `i`
-        array here.
-
-    Args:
-        n_gaps: Number of time gaps.
-        n_inds: Number of individuals.
-        suffix: Suffix for the variable name and chunk dimension name.
-    """
-    p_any_i = pm.Beta(f"dmi_p_any_i_{suffix}", 1, 1)
-    n = pm.Bernoulli(f"dmi_n_{suffix}", p_any_i, dims="ind")
-    p = pm.Dirichlet(f"dmi_p_{suffix}", np.ones(n_gaps), shape=(n_inds, n_gaps))
-    return pm.Multinomial(f"dmi_i_{suffix}", n=n, p=p, shape=(n_inds, n_gaps)).T
-
-
-def model_dirmul(
-    data: CombinedTiterData,
-    splits: Union[tuple[int], tuple[int, int]],
-    ignore_pcrpos: int = False,
-) -> pm.model.Model:
-    """
-    Set up an antibody dynamics model that uses Dirichlet and Multinomial distributions
-    to model infection probabilities.
-
-    Args:
-        data: Combined constant gap data.
-        splits: A len 1 or len 2 tuple containing gap indexes for infection chunking.
-        ignore_pcrpos: Should PCR+ data be ignored (e.g. for running a positive control
-            test).
-    """
-    check_splits(splits=splits, data=data)
-
-    # Vaccinations
-    v = at.as_tensor(data.vacs.T)
-
-    # PCR positives
-    pcrpos = at.as_tensor(data.pcrpos.T)
-
-    time_chunks = make_time_chunks(pcrpos=pcrpos, splits=splits)
-
-    with pm.Model(coords=data.coords) as model:
-        i = time_chunks.dirichlet_multinomial_infections
-
-        # Ensure that in each chunk of time gaps that PCR+ data take precedence
-        if not ignore_pcrpos:
-            i = time_chunks.incorporate_pcrpos(i_raw=i)
-
-        # Infer infections and ab parameters
-        ititers_n = model_popab_vacsep_nonwane_n(data=data.n, i=i)
-        ititers_s = model_popab_vacsep_nonwane_s(data=data.s, i=i, v=v)
-
-        # Sigmoid likelihood
-        model_sigmoids(data=data.n, a=ititers_n)
-        model_sigmoids(data=data.s, a=ititers_s)
-
-    return model
-
-
 def model(
     data: CombinedTiterData,
     splits: Optional[Union[tuple[int], tuple[int, int]]] = None,
@@ -712,23 +637,6 @@ class TwoTimeChunks(MultipleTimeChunks):
             )
         )
 
-    @property
-    def dirichlet_multinomial_infections(self) -> at.TensorVariable:
-        """
-        Separate Dirichlet / Multinomial infections for each chunk of time gaps.
-
-        Args:
-            n_gaps: The total number of gaps (for both time chunks).
-            n_inds: Number of individuals.
-        """
-        a = dirichlet_multinomial_infections(
-            n_inds=self.n_inds, n_gaps=self.split, suffix=0
-        )
-        b = dirichlet_multinomial_infections(
-            n_inds=self.n_inds, n_gaps=self.n_gaps - self.split, suffix=1
-        )
-        return at.concatenate((a, b))
-
 
 class ThreeTimeChunks(MultipleTimeChunks):
     def __init__(self, splits: tuple[int], pcrpos: at.TensorLike):
@@ -901,13 +809,6 @@ def main():
 
     parser = argparse.ArgumentParser("abd-model")
     parser.add_argument(
-        "--model",
-        help="Specifies the function that generates the pymc Model to use. Either "
-        "'model' or 'model_dirmul'.",
-        choices=("model", "model_dirmul"),
-        required=True,
-    )
-    parser.add_argument(
         "--tune", help="Number of tuning steps.", type=int, required=True
     )
     parser.add_argument("--draws", help="Number of draws.", type=int, required=True)
@@ -939,9 +840,7 @@ def main():
         else data.calculate_splits(delta=args.split_delta, omicron=args.split_omicron)
     )
 
-    fun = {"model": model, "model_dirmul": model_dirmul}[args.model]
-
-    with fun(data, splits=splits, ignore_pcrpos=args.ignore_pcrpos):
+    with model(data, splits=splits, ignore_pcrpos=args.ignore_pcrpos):
         idata = pm.sample(tune=args.tune, draws=args.draws, cores=args.cores)
 
     az.to_netcdf(idata, args.netcdf)

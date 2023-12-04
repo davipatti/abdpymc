@@ -4,12 +4,9 @@ import logging
 import unittest
 
 import numpy as np
-import pymc as pm
 import pytensor.tensor as at
-import arviz as az
 
 import abdpymc as abd
-import abdpymc.timelines as timelines
 
 
 class TestMaskFutureInfections(unittest.TestCase):
@@ -491,81 +488,6 @@ class TestTwoTimeChunks(unittest.TestCase):
         ]
 
         self.assertTrue(np.all(np.equal(expect, output)))
-
-
-class TestDirichletMultinomialModel(unittest.TestCase):
-    """
-    Tests for abd.model_dirmul.
-
-    Was planning on implementing some tests that I had developed in a notebook (where
-    they passed). But, running into thorny looking pytensor.scan errors when trying to
-    call abd.model_dirmul from this test code. (The code runs fine if not called from
-    here).
-
-    These functions were called with samples=pm.sample_prior_predictive().prior
-
-    >>> def sum_gap_probs_eq_1(samples, tol=1e-9, varname="base_p"):
-    >>>     '''Test if the probabilites for each individual sum to 1'''
-    >>>     return ((samples[varname].sum(dim="gap") - 1) < tol).values.all()
-
-    >>> def any_ind_with_gt_1_inf(samples) -> bool:
-    >>>     '''Test if samples contain any individuals with more than one infection'''
-    >>>     return (samples["i"].sum(dim="gap") > 1).values.any()
-
-    >>> def all_inds_have_exactly_1_inf(samples):
-    >>>     '''Test if all individuals have precisely 1 infection.'''
-    >>>     return (samples["i"].sum(dim="gap") == 1).values.all()
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        data = abd.CombinedTiterData.from_disk("data/cohort_data")
-        splits = data.calculate_splits(delta=False, omicron=True)
-
-        model = abd.model_dirmul(data=data, splits=splits, ignore_pcrpos=False)
-
-        with model:
-            idata = pm.sample_prior_predictive()
-
-        cls.prior = idata.prior
-
-    def test_sum_gap_infection_probs(self):
-        """
-        Test if infection probabilites for each individual sum to 1.
-        """
-        for block in 0, 1:
-            with self.subTest(block=block):
-                prob_sums = self.prior[f"dmi_p_{block}"].sum(dim=f"dmi_p_{block}_dim_1")
-                self.assertTrue(((prob_sums - 1.0) < 1e-9).values.all())
-
-    def test_each_gap_can_have_infections(self):
-        """
-        Should be possible to have an infection in any gap.
-        """
-        # dim_0 is ind, dim_1 is gap
-        gap_p = (
-            self.prior["dmi_p_0"]
-            .mean(dim="dmi_p_0_dim_0")
-            .mean(dim="draw")
-            .sel(chain=0)
-        )
-
-        # Check we prior probabilities for gaps, (i.e. that there are 20 of them)
-        self.assertEqual(20, len(gap_p))
-
-        # None should be equal to zero
-        self.assertTrue((gap_p != 0).all())
-
-
-class TestConcatenateDirMulInfections(unittest.TestCase):
-    def test_returned_xarray_dataset_has_i_variable(self):
-        """
-        Check that returned xarray Dataset has an "i" variable.
-        """
-        idata = az.from_netcdf("data/inference_data/abd-20231109-small.nc")
-        post = idata.posterior.sel(chain=[0, 1], draw=[0, 1, 2])
-        post = timelines.concatenate_dirmul_infections(post)
-        self.assertIn("i", post)
 
 
 class TestInvLogistic(unittest.TestCase):

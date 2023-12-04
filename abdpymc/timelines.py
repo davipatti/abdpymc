@@ -4,7 +4,6 @@ from typing import Iterable, Union, Optional, Callable
 import time
 import functools
 import itertools
-import re
 import logging
 
 import xarray as xr
@@ -531,35 +530,6 @@ def compute_posterior_mean(post: xr.Dataset) -> xr.Dataset:
     return post.mean(dim="sample")
 
 
-@log_time
-def concatenate_dirmul_infections(post: xr.Dataset) -> xr.Dataset:
-    """
-    Concatenate blocks of infections.
-
-    The model that implements infection constraints using Dirichlet / Multinomial
-    variables encodes infections in different blocks. Here, concatenate those blocks back
-    into a single variable.
-    """
-    if "i" not in post:
-        # Select out only variables that are named like dmi_i_0, dmi_i_1, etc...
-        var_names = sorted(
-            variable for variable in post if re.match(r"dmi_i_\d", variable)
-        )
-
-        # Rename gap dimensions to "gap" so that they can be concatenated
-        variables = [
-            post[var_name].rename(
-                {f"{var_name}_dim_0": "ind", f"{var_name}_dim_1": "gap"}
-            )
-            for var_name in var_names
-        ]
-
-        infections = xr.concat(variables, dim="gap")
-        infections.coords["gap"] = np.arange(31)
-        post["i"] = infections
-    return post
-
-
 def main():
     import argparse
 
@@ -642,7 +612,7 @@ def main():
 
     post = stack_posterior(idata)
 
-    post_mean = compute_posterior_mean(post).pipe(concatenate_dirmul_infections)
+    post_mean = compute_posterior_mean(post)
 
     df_ititers = load_ititers(path=f"{args.ititers_data}/ititers.csv", data=data)
 
