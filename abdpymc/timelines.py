@@ -315,6 +315,10 @@ def plot_individual(
             else post_mean.sel(gap=slice(None, last_gap), ind=ind_i).i
         )
 
+    import pdb
+
+    pdb.set_trace()
+
     if show_inf_prob:
         ax.stairs(
             scale(inf_p),
