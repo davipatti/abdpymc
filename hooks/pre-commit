@@ -1,4 +1,8 @@
 #!/bin/sh
 
+# If any command fails, exit immediately with that command's exit status
+set -eo pipefail
+
 python -W ignore::UserWarning:: -m flake8 --ignore=E501,F821,E203,W503
+
 pytest --disable-warnings --no-header
