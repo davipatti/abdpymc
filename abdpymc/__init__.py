@@ -11,11 +11,14 @@ from .abd import (
     mask_multiple_infections,
     mask_three_gaps,
     model,
+    scalar_variables,
     TwoTimeChunks,
 )
+from . import plotting
 from . import simulation
 from . import timelines
 
+__version__ = "0.1.2"
 __all__ = [
     "BLUEGREY",
     "CombinedTiterData",
@@ -29,6 +32,8 @@ __all__ = [
     "mask_multiple_infections",
     "mask_three_gaps",
     "model",
+    "plotting",
+    "scalar_variables",
     "simulation",
     "timelines",
     "TwoTimeChunks",

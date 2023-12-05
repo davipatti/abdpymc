@@ -854,5 +854,10 @@ def main():
     az.to_netcdf(idata, args.netcdf)
 
 
+def scalar_variables(dataset: "xarray.Dataset") -> list[str]:
+    """List variables of an xarray dataset that only have a 'sample' dimension."""
+    return [var for var in dataset.data_vars if dataset[var].dims == ("sample",)]
+
+
 if __name__ == "__main__":
     main()
