@@ -74,7 +74,9 @@ class TestAllITitersData(unittest.TestCase):
         Build an instance of CombinedAllITitersData for testing. This object has 's' and
         'n' attributes which are instances of AllITitersData.
         """
-        cls.cat = abd.CombinedTiterData.from_disk("data/cohort_data")
+        root = Path(abd.__file__).parent.parent
+        directory = root.joinpath(Path("data", "cohort_data"))
+        cls.cat = abd.CombinedTiterData.from_disk(directory)
 
     def test_idx_gap_shape(self):
         """
