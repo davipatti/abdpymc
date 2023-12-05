@@ -254,7 +254,7 @@ def plot_individual(
         post_skip: Skip this many lines when plotting raw samples from the posterior
             distribution. If None, then calculate a value such that 50 posterior samples
             are plotted.
-        splits: Plot cummulative infection probabilites within the time chunks delimited
+        splits: Plot cummulative infection probabilities within the time chunks delimited
             by splits.
         post_mean: Precomupted posterior mean. Can save time to precomupte over multiple
             individuals if plot_individual is being called alot.
@@ -264,7 +264,7 @@ def plot_individual(
         show_n_data: Show inflection titer estimates for N.
         show_inf_prob: Stair plot showing monthly infection probability.
         show_cuminf_prob: Stair plot showing cumulative monthly infection probability.
-        label_fontsize: Fontsize for labelling variant periods, indiviudal record number
+        label_fontsize: Fontsize for labelling variant periods, individual record number
             and index.
         show_only_1_40_without_ititers: Only show 1:40 data where there isn't inflection
             titer data too.
@@ -315,10 +315,6 @@ def plot_individual(
             else post_mean.sel(gap=slice(None, last_gap), ind=ind_i).i
         )
 
-    import pdb
-
-    pdb.set_trace()
-
     if show_inf_prob:
         ax.stairs(
             scale(inf_p),
@@ -330,7 +326,7 @@ def plot_individual(
         )
 
     if show_cuminf_prob:
-        # Plot cummulative infection probabilites.
+        # Plot cummulative infection probabilities.
         if splits is not None:
             for start, stop in itertools.pairwise((0, *splits, None)):
                 plot_cum_infection_p(
