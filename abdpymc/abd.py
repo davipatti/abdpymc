@@ -871,6 +871,9 @@ def compute_chunked_cum_p(
         p: 1D array containing probabilities.
         splits: Defines the borders of different chunks of time in p.
     """
+    if p.ndim != 1:
+        raise ValueError("p is not 1D")
+
     if splits is None:
         cum = np.cumsum(p)
         return np.where(cum > 1.0, 1.0, cum)

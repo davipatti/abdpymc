@@ -3,7 +3,6 @@
 from typing import Iterable, Union, Optional, Callable
 import time
 import functools
-import itertools
 import logging
 
 import xarray as xr
@@ -201,26 +200,6 @@ plot_predelta_background = functools.partial(
 )
 
 
-def plot_cum_infection_p(
-    infection: xr.DataArray, start: int, stop: int, scale: callable, **kwds
-):
-    """
-    Plot the cummulative infection probability between the gaps `start` and `stop`.
-
-    Args:
-        infection: 1D array containing infection probability across gaps for an
-            individual.
-        start: Begin the cummulative sum at this gap.
-        stop: End the cummulative plot at this gap.
-        scale: Callable that scales the cummulative probabilities.
-        **kwds: Passed to plt.stairs.
-    """
-    values = scale(infection[start:stop].cumsum())
-    plt.stairs(
-        values, edges=np.arange(start, start + len(values) + 1), baseline=None, **kwds
-    )
-
-
 def plot_individual(
     ind_i,
     data: abd.CombinedTiterData,
@@ -326,19 +305,16 @@ def plot_individual(
         )
 
     if show_cuminf_prob:
-        # Plot cummulative infection probabilities.
-        if splits is not None:
-            for start, stop in itertools.pairwise((0, *splits, None)):
-                plot_cum_infection_p(
-                    inf_p,
-                    start=start,
-                    stop=stop,
-                    color="grey",
-                    scale=scale,
-                    clip_on=False,
-                    zorder=9,
-                    lw=0.5,
-                )
+        cum_p = abd.compute_chunked_cum_p(inf_p, splits=splits)
+        plt.stairs(
+            scale(cum_p),
+            edges=np.arange(0, len(cum_p) + 1),
+            baseline=None,
+            color="grey",
+            clip_on=False,
+            zorder=9,
+            lw=0.5,
+        )
 
     # PCR+ and vaccinations
     kwds = dict(ymin=ymin, ymax=ymax)

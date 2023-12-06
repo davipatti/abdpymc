@@ -739,6 +739,14 @@ class TestComputeChunkedCumProbability(unittest.TestCase):
         cum_p = abd.compute_chunked_cum_p(p, splits=(10,))
         self.assertLess(cum_p[10], 1.0)
 
+    def test_raises_error_if_p_not_1d(self):
+        """
+        Should raise a ValueError if p is not 1D.
+        """
+        with self.assertRaisesRegex(ValueError, "p is not 1D"):
+            p = np.random.uniform(0, 1, size=(10, 10))
+            abd.compute_chunked_cum_p(p)
+
 
 if __name__ == "__main__":
     # Stop pymc reporting things like which variables are going to be sampled
