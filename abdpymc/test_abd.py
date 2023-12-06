@@ -712,6 +712,34 @@ class TestModel(CombinedTiterDataPath, unittest.TestCase):
         self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
 
 
+class TestComputeChunkedCumProbability(unittest.TestCase):
+    def test_cum_p_never_exceeds_one(self):
+        """
+        Cummulative probability should not exceed 1.
+        """
+        p = np.random.uniform(low=0.5, high=0.8, size=20)
+        cum_p = abd.compute_chunked_cum_p(p)
+        self.assertEqual(1.0, max(cum_p))
+
+    def test_cum_p_never_exceeds_one_two_chunks(self):
+        """
+        Cummulative probability should not exceed 1.
+        """
+        p = np.random.uniform(low=0.7, high=0.8, size=20)
+        cum_p = abd.compute_chunked_cum_p(p, splits=(10,))
+        self.assertEqual(1.0, max(cum_p[:10]), "value in first chunk exceeds 1.0")
+        self.assertEqual(1.0, max(cum_p[10:]), "value in second chunk exceeds 1.0")
+
+    def test_cum_p_two_chunks_probabilities_reset(self):
+        """
+        Probabilities should go back to being less than one at the start of the second
+        chunk.
+        """
+        p = np.random.uniform(low=0.7, high=0.8, size=20)
+        cum_p = abd.compute_chunked_cum_p(p, splits=(10,))
+        self.assertLess(cum_p[10], 1.0)
+
+
 if __name__ == "__main__":
     # Stop pymc reporting things like which variables are going to be sampled
     logging.getLogger("pymc").setLevel(logging.ERROR)

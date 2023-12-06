@@ -4,6 +4,7 @@ import math
 import os
 from abc import ABC
 from typing import Generator, Iterable, Optional, Union
+import itertools
 
 import arviz as az
 import numpy as np
@@ -857,6 +858,29 @@ def main():
 def scalar_variables(dataset: "xarray.Dataset") -> list[str]:
     """List variables of an xarray dataset that only have a 'sample' dimension."""
     return [var for var in dataset.data_vars if dataset[var].dims == ("sample",)]
+
+
+def compute_chunked_cum_p(
+    p: np.array, splits: Optional[tuple[int, ...]] = None
+) -> np.array:
+    """
+    Compute cumulative probabilities from an array of probabilities. Time is split into
+    chunks defined by splits. Compute cumulative probabilities for each chunk.
+
+    Args:
+        p: 1D array containing probabilities.
+        splits: Defines the borders of different chunks of time in p.
+    """
+    if splits is None:
+        cum = np.cumsum(p)
+        return np.where(cum > 1.0, 1.0, cum)
+    else:
+        return np.hstack(
+            [
+                compute_chunked_cum_p(p[a:b])
+                for a, b in itertools.pairwise((0, *splits, None))
+            ]
+        )
 
 
 if __name__ == "__main__":
