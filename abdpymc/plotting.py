@@ -85,6 +85,7 @@ def plot_p_infection_relative_to_known_infection(
     points: bool = False,
     lines: bool = False,
     mean_line: bool = False,
+    cum_mean_line: bool = False,
     ax: Optional[mpl.axes.Axes] = None,
     xlabel: str = "Months since PCR+",
     xtick_center_label: str = "PCR+",
@@ -102,6 +103,7 @@ def plot_p_infection_relative_to_known_infection(
         points: Add points on lines.
         lines: Plot all lines.
         mean_line: Show the mean of all infection probabilities.
+        cum_mean_line: Show the cumulative mean infection probability.
         ax: Matplotlib axes.
         xlabel: X-label.
         xtick_center_label: Label for the central xtick.
@@ -145,6 +147,21 @@ def plot_p_infection_relative_to_known_infection(
             markersize=5,
             c="black",
             zorder=15,
+            label="Mean",
+            **kwds,
+        )
+
+    if cum_mean_line:
+        ax.plot(
+            x,
+            np.nanmean(infp_overlaid, axis=0).cumsum(),
+            linewidth=2,
+            marker="o",
+            markersize=5,
+            c="black",
+            linestyle=":",
+            zorder=15,
+            label="Cumulative mean",
             **kwds,
         )
 
