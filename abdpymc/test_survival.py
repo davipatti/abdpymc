@@ -28,14 +28,21 @@ class TestSurvivalAnalysis(unittest.TestCase):
         """
         SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
 
-    def test_infected_mean_dims(self):
+    def test_infected_dims(self):
         """
         sa.infected should be n_inds x n_int (1520, 10)
         """
         sa = SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
         self.assertEqual((1520, 9), sa.infected.shape)
 
-    def test_infected_mean_max_sum_one(self):
+    def test_exposure_dims(self):
+        """
+        sa.exposure should be n_inds x n_int (1520, 10)
+        """
+        sa = SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
+        self.assertEqual((1520, 9), sa.exposure.shape)
+
+    def test_infected_max_sum_one(self):
         """
         The maximum sum of any row in infected should be 1.0.
         """
@@ -72,6 +79,21 @@ class TestSurvivalAnalysis(unittest.TestCase):
         diff_lt_zero = np.diff(sa.exposure, axis=1) <= 0.0
         diff_is_nan = np.isnan(diff)
         self.assertTrue(np.bitwise_or(diff_lt_zero, diff_is_nan).all())
+
+    def test_infection_contains_nan(self):
+        """
+        Infection array should contain nan's past an individual's last sample.
+        """
+        sa = SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
+        self.assertTrue(np.isnan(sa.infected).any())
+
+    def test_exposure_nan_where_infection_nan(self):
+        """
+        The exposure array should have an identical pattern of nan values to the
+        infection array.
+        """
+        sa = SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
+        self.assertTrue(np.array_equal(np.isnan(sa.exposure), np.isnan(sa.infected)))
 
 
 class TestMakeNanAfterLastSample(unittest.TestCase):

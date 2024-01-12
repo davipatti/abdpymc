@@ -64,7 +64,8 @@ class SurvivalAnalysis:
             infected_raw, last_gap=self.cohort_data.last_gap
         )
 
-        # Extract infection probability gaps that are used in this survival analysis.
+        # Extract infection probability for time gaps that are used in this survival
+        # analysis.
         self.infected = infected_raw[:, self.start + 1 : self.end]
 
         # Using value_while_cumsum_below_threshold here means that the total infection
@@ -82,6 +83,12 @@ class SurvivalAnalysis:
         # gaps.
         self.exposure = np.ones_like(self.infected)
         self.exposure[:, 1:] -= self.infected.cumsum(axis=1)[:, :-1]
+
+        # Make sure that the pattern of missing data (np.nan) is the same in exposure as
+        # in infected. Because exposure is calculated from the cumulative infection
+        # probability that is lagged by one time gap (see above), nan's appear one time
+        # step too late in the exposure array without this step.
+        self.exposure[np.isnan(self.infected)] = np.nan
 
 
 def value_while_cumsum_below_threshold(
