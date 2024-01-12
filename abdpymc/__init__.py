@@ -18,6 +18,8 @@ from .abd import (
 from . import plotting
 from . import simulation
 from . import timelines
+from . import survival
+from .survival import load_or_sample_model, SurvivalAnalysis
 
 __version__ = "0.1.2"
 __all__ = [
@@ -27,6 +29,7 @@ __all__ = [
     "DARKORANGE",
     "incorporate_pcrpos",
     "invlogistic",
+    "load_or_sample_model",
     "logistic",
     "mask_future_infection",
     "mask_multiple_infections_2_chunks",
@@ -37,6 +40,8 @@ __all__ = [
     "plotting",
     "scalar_variables",
     "simulation",
+    "survival",
+    "SurvivalAnalysis",
     "timelines",
     "TwoTimeChunks",
 ]

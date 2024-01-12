@@ -1,9 +1,11 @@
 from dataclasses import dataclass
-from typing import Generator, Iterable
+from pathlib import Path
+from typing import Generator, Iterable, Literal, Callable
 
 import arviz as az
 import numpy as np
 import pandas as pd
+import pymc as pm
 
 
 @dataclass
@@ -38,6 +40,9 @@ class SurvivalAnalysis:
         infected: (n_ind, n_int) array of mean infection probabilities processed
             such that the maximum cumulative infection probability for any individual is
             one.
+        exposure: (n_ind, n_int)
+        {s,n}_titer: (n_ind, n_int)
+        sn_titer: (n_ind, n_int, 2)
 
     """
 
@@ -96,6 +101,27 @@ class SurvivalAnalysis:
         self.s_titer = self.post_mean["ab_s_mu"].values.T[:, self.start : self.end - 1]
         self.n_titer = self.post_mean["ab_n_mu"].values.T[:, self.start : self.end - 1]
 
+    def model_alone(self, antigen: Literal["s", "n"]) -> pm.Model:
+        """
+        Bayesian cox proportional hazards model. S or N titer is used as predictor of
+        infection risk in subsequent month.
+
+        Args:
+            antigen: 's' (spike) or 'n' (nucleocapsid).
+        """
+        infected = convert_nan_to_zero(self.infected)
+        exposure = convert_nan_to_zero(self.exposure)
+        titer = {"s": self.s_titer, "n": self.n_titer}[antigen]
+        coords = dict(intervals=self.intervals)
+        with pm.Model(coords=coords) as model:
+            lam0 = make_hierarchical_lam0(dims="intervals")
+            a = pm.Normal("a", 0.0, 1.0)
+            b = pm.Normal("b", 0.0, 1.0)
+            lam = lam0 / (1.0 + np.exp((titer - a) @ -b))
+            pm.Poisson("obs", exposure * lam, observed=infected)
+
+        return model
+
 
 def value_while_cumsum_below_threshold(
     values: Iterable[float], threshold: float = 1.0
@@ -147,3 +173,51 @@ def make_nan_after_last_sample(
             raise ValueError("values in last_gap must be positive")
         arr[ind, last_gap[ind] + 1 :] = np.nan
     return arr
+
+
+def make_hierarchical_lam0(dims: list[str]) -> "pytensor.TensorVariable":
+    """
+    lam0 (lambda_0) is the baseline risk.
+
+    Args:
+        dims: Dimensions for lam0.
+    """
+    return pm.Gamma(
+        "lam0",
+        mu=pm.Gamma("lam0_mu", mu=0.5, sigma=0.1),
+        sigma=pm.Gamma("lam0_sigma", mu=0.5, sigma=0.1),
+        dims=dims,
+    )
+
+
+def convert_nan_to_zero(arr: np.ndarray) -> np.ndarray:
+    """Convert nan values to zero."""
+    return np.where(np.isnan(arr), 0.0, arr)
+
+
+def load_or_sample_model(path: str, fun: Callable, *args, **kwargs) -> az.InferenceData:
+    """
+    Try to load a pymc trace from a path. If the path doesn't exist then generate
+    the trace by calling fun(*args, **kwargs), save the inference data to path, and then
+    return it.
+
+    Args:
+        path: Path to NetCDF file.
+        fun: Callable that returns an arviz inference data object.
+        *args, **kwargs: Passed to fun.
+    """
+    if not Path(path).suffix == ".nc":
+        raise ValueError(f"file must end with .nc: {path}")
+
+    if not (Path(path).parent.exists() and Path(path).parent.is_dir()):
+        raise ValueError(f"directory does not exist: {path}")
+
+    try:
+        idata = az.from_netcdf(path)
+
+    except FileNotFoundError:
+        idata = fun(*args, **kwargs)
+        idata.to_netcdf(path)
+
+    finally:
+        return idata
