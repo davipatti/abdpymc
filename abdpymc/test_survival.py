@@ -42,6 +42,20 @@ class TestSurvivalAnalysis(unittest.TestCase):
         sa = SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
         self.assertEqual((1520, 9), sa.exposure.shape)
 
+    def test_dims_equal(self):
+        """
+        Test the dimensions of all arrays that should be equal.
+        """
+        sa = SurvivalAnalysis(self.idata, start=0, end=10, cohort_data=self.data)
+        self.assertTrue(
+            sa.exposure.shape
+            == sa.infected.shape
+            == sa.n_titer.shape
+            == sa.s_titer.shape,
+            f"shapes differ {sa.exposure.shape}, {sa.infected.shape}, "
+            f"{sa.n_titer.shape}, {sa.s_titer.shape}",
+        )
+
     def test_infected_max_sum_one(self):
         """
         The maximum sum of any row in infected should be 1.0.

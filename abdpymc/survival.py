@@ -90,6 +90,12 @@ class SurvivalAnalysis:
         # step too late in the exposure array without this step.
         self.exposure[np.isnan(self.infected)] = np.nan
 
+        # Extract antibody titer inferences. These arrays are the same size as `infected`
+        # and `exposure`, but offset by one time gap such that the month `m` in the
+        # titer array is aligned with month `m+1` in the exposure and infection arrays.
+        self.s_titer = self.post_mean["ab_s_mu"].values.T[:, self.start : self.end - 1]
+        self.n_titer = self.post_mean["ab_n_mu"].values.T[:, self.start : self.end - 1]
+
 
 def value_while_cumsum_below_threshold(
     values: Iterable[float], threshold: float = 1.0
