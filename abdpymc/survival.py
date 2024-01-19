@@ -195,16 +195,18 @@ def convert_nan_to_zero(arr: np.ndarray) -> np.ndarray:
     return np.where(np.isnan(arr), 0.0, arr)
 
 
-def load_or_sample_model(path: str, fun: Callable, *args, **kwargs) -> az.InferenceData:
+def load_or_sample_model(
+    path: str, model: pm.Model | Callable, *args, **kwargs
+) -> az.InferenceData:
     """
     Try to load a pymc trace from a path. If the path doesn't exist then generate
-    the trace by calling fun(*args, **kwargs), save the inference data to path, and then
+    the trace by calling model(*args, **kwargs), save the inference data to path, and then
     return it.
 
     Args:
         path: Path to NetCDF file.
-        fun: Callable that returns an arviz inference data object.
-        *args, **kwargs: Passed to fun.
+        model: A pymc Model or Callable that returns an arviz inference data object.
+        *args, **kwargs: Passed to pymc.sample or the callable.
     """
     if not Path(path).suffix == ".nc":
         raise ValueError(f"file must end with .nc: {path}")
@@ -216,7 +218,12 @@ def load_or_sample_model(path: str, fun: Callable, *args, **kwargs) -> az.Infere
         idata = az.from_netcdf(path)
 
     except FileNotFoundError:
-        idata = fun(*args, **kwargs)
+        if isinstance(model, pm.Model):
+            with model:
+                idata = pm.sample(*args, **kwargs)
+        else:
+            idata = model(*args, **kwargs)
+
         idata.to_netcdf(path)
 
     finally:
