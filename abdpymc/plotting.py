@@ -3,6 +3,9 @@ from typing import Iterable, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import arviz as az
+
+from . import abd
 
 
 def overhanging_slice(values: Iterable, center: int, pad: float, fill=None) -> tuple:
@@ -170,3 +173,71 @@ def plot_p_infection_relative_to_known_infection(
     relative_to_known_ticks(window, ax=ax, label=xtick_center_label)
 
     ax.set(ylim=(0, 1), ylabel="P(Infection)", xlabel=xlabel)
+
+
+def plot_protection(
+    idata,
+    n_samples=250,
+    xmin=-1,
+    xmax=6,
+    show_mean=True,
+    show_hdi: bool = False,
+    sample_kwds: Optional[dict] = None,
+    hdi_kwds: Optional[dict] = None,
+    mean_kwds: Optional[dict] = None,
+) -> None:
+    """
+    Plot posterior protection curve.
+
+    Parameters:
+    - idata: InferenceData
+        The InferenceData object containing the posterior samples.
+    - n_samples: int, optional
+        The number of posterior samples to plot. Default is 250.
+    - xmin: float, optional
+        The minimum x-axis value. Default is -1.
+    - xmax: float, optional
+        The maximum x-axis value. Default is 6.
+    - show_mean: bool, optional
+        Whether to show the mean curve. Default is True.
+    - show_hdi: bool, optional
+        Whether to show the highest density interval (HDI) curve. Default is False.
+    - sample_kwds: dict, optional
+        Additional keyword arguments for customizing the sample curve plot. Passed to
+        plt.plot.
+    - hdi_kwds: dict, optional
+        Additional keyword arguments for customizing the HDI curve plot. Passed to
+        plt.fill_between.
+    - mean_kwds: dict, optional
+        Additional keyword arguments for customizing the mean curve plot. Passed to
+        plt.plot.
+    """
+    sample_kwds = {} if sample_kwds is None else sample_kwds
+    hdi_kwds = {} if hdi_kwds is None else hdi_kwds
+    mean_kwds = {} if mean_kwds is None else mean_kwds
+
+    post = az.extract(idata)
+
+    x = np.linspace(xmin, xmax)
+    y = 1 - abd.logistic(
+        x=x[:, np.newaxis], a=post["a"].values, b=post["b"].values, d=1
+    )
+
+    if n_samples:
+        if n_samples > y.shape[1]:
+            raise ValueError("asking to show more samples than there are")
+        samples = np.linspace(0, y.shape[1] - 1, num=n_samples, dtype=int)
+        plt.plot(
+            x,
+            y[:, samples],
+            c=sample_kwds.pop("c", "black"),
+            alpha=sample_kwds.pop("alpha", 0.05),
+            **sample_kwds,
+        )
+
+    if show_hdi:
+        hdi = az.hdi(y.T)
+        plt.fill_between(x, hdi[:, 0], hdi[:, 1], **hdi_kwds)
+
+    if show_mean:
+        plt.plot(x, y.mean(axis=1), **mean_kwds)
