@@ -46,23 +46,26 @@ class SurvivalAnalysis:
 
     """
 
-    idata: "arviz.InferenceData"
+    abd_inference: dict | az.InferenceData
     start: int
     end: int
     cohort_data: "abdpymc.CombinedTiterData"
 
     def __post_init__(self):
-        self.post = az.extract(self.idata)
-        self.post_mean = self.post.mean(dim="sample")
+        self.from_MAP = isinstance(self.abd_inference, dict)
 
         self.intervals = np.arange(self.end - self.start - 1)
         self.n_int = len(self.intervals)
         self.t0 = self.cohort_data.t0 + self.start + 1
 
-        # Get the raw infection probabilities. Transpose because inference data arrays
-        # are all (gap x ind), but have implemented the survival analysis code to work on
-        # (ind x gap) arrays
-        infected_raw = self.post_mean["i"].values.T
+        # Infections. Transpose because inference data arrays are all (gap x ind), but
+        # have implemented the survival analysis code to work on (ind x gap) arrays
+        if self.from_MAP:
+            infected_raw = self.abd_inference["i"].T
+        else:
+            self.post = az.extract(self.abd_inference)
+            self.post_mean = self.post.mean(dim="sample")
+            infected_raw = self.post_mean["i"].values.T
 
         # Remove all infection probabilities that occur after the last sample was taken
         infected_raw = make_nan_after_last_sample(
@@ -98,8 +101,16 @@ class SurvivalAnalysis:
         # Extract antibody titer inferences. These arrays are the same size as `infected`
         # and `exposure`, but offset by one time gap such that the month `m` in the
         # titer array is aligned with month `m+1` in the exposure and infection arrays.
-        self.s_titer = self.post_mean["ab_s_mu"].values.T[:, self.start : self.end - 1]
-        self.n_titer = self.post_mean["ab_n_mu"].values.T[:, self.start : self.end - 1]
+        if self.from_MAP:
+            self.s_titer = self.abd_inference["ab_s_mu"].T[:, self.start : self.end - 1]
+            self.n_titer = self.abd_inference["ab_n_mu"].T[:, self.start : self.end - 1]
+        else:
+            self.s_titer = self.post_mean["ab_s_mu"].values.T[
+                :, self.start : self.end - 1
+            ]
+            self.n_titer = self.post_mean["ab_n_mu"].values.T[
+                :, self.start : self.end - 1
+            ]
 
     def model_alone(self, antigen: Literal["s", "n"]) -> pm.Model:
         """
