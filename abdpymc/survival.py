@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, Iterable, Literal, Callable
+from typing import Generator, Iterable, Literal, Callable, Optional
 
 import arviz as az
 import numpy as np
