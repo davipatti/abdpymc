@@ -168,6 +168,8 @@ def make_nan_after_last_sample(
         arr: (n_inds, n_ints)
         last_sample: Mapping of individual i -> last gap.
     """
+    if np.issubdtype(arr.dtype, np.integer):
+        arr = arr.astype(float)
     for ind in range(arr.shape[0]):
         if last_gap[ind] < 0:
             raise ValueError("values in last_gap must be positive")
@@ -175,19 +177,44 @@ def make_nan_after_last_sample(
     return arr
 
 
-def make_hierarchical_lam0(dims: list[str]) -> "pytensor.TensorVariable":
+def make_hierarchical_lam0(dims: list[str], **kwds) -> "pytensor.TensorVariable":
     """
     lam0 (lambda_0) is the baseline risk.
 
     Args:
         dims: Dimensions for lam0.
+        **kwds passed to make_hierarchical normal.
     """
-    return pm.Gamma(
-        "lam0",
-        mu=pm.Gamma("lam0_mu", mu=0.5, sigma=0.1),
-        sigma=pm.Gamma("lam0_sigma", mu=0.5, sigma=0.1),
-        dims=dims,
-    )
+    _lam0_raw = make_hierarchical_normal(name="_lam0_raw", dims=dims, **kwds)
+    return pm.Deterministic("lam0", pm.math.invlogit(_lam0_raw), dims=dims)
+
+
+def make_hierarchical_normal(
+    name: str,
+    dims: str,
+    hyper_mu: float = 0.0,
+    hyper_sigma: float = 0.5,
+    hyper_lam: float = 2.0,
+    dims_mu: Optional[tuple[str, ...] | str] = None,
+    dims_sigma: Optional[tuple[str, ...] | str] = None,
+) -> "pytensor.tensor.TensorVariable":
+    """
+    Non-center parametrised hierarchical normal distribution. Equivalent to:
+
+        mu = Normal(`name`_mu, mu=hyper_mu, sigma=hyper_sigma, dims=dims_mu)
+        sigma = Exponential(`name`_sigma, lam=hyper_lam, dims=dims_sigma)
+        Normal(name, mu=mu, sigma=sigma, dims=dims)
+
+    Args:
+        name: Variable name.
+        dims: Dimensions of the model for the variable.
+        hyper_{mu,sigma,lam}: Hyperpriors.
+        dims_{mu,sigma}
+    """
+    mu = pm.Normal(f"{name}_mu", mu=hyper_mu, sigma=hyper_sigma, dims=dims_mu)
+    sigma = pm.Exponential(f"{name}_sd", lam=hyper_lam, dims=dims_sigma)
+    z = pm.Normal(f"_{name}_z", mu=0.0, sigma=1.0, dims=dims)
+    return pm.Deterministic(name, z * sigma + mu, dims=dims)
 
 
 def convert_nan_to_zero(arr: np.ndarray) -> np.ndarray:
