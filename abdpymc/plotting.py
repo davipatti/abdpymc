@@ -1,5 +1,6 @@
-from typing import Iterable, Optional
+from typing import Iterable, Literal, Optional
 
+import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -175,13 +176,23 @@ def plot_p_infection_relative_to_known_infection(
     ax.set(ylim=(0, 1), ylabel="P(Infection)", xlabel=xlabel)
 
 
+def plot_protection_timevariable(idata, **kwds):
+    """
+    Plot protection for all intervals in a time variable model.
+    """
+    for interval in idata.posterior.coords["intervals"].values:
+        plot_protection(idata, interval=interval, **kwds)
+
+
 def plot_protection(
-    idata,
+    idata: az.InferenceData | xr.Dataset,
     n_samples=250,
     xmin=-1,
     xmax=6,
     show_mean=True,
     show_hdi: bool = False,
+    antigen: Optional[Literal["S", "N"]] = None,
+    interval: Optional[int] = None,
     sample_kwds: Optional[dict] = None,
     hdi_kwds: Optional[dict] = None,
     mean_kwds: Optional[dict] = None,
@@ -202,6 +213,8 @@ def plot_protection(
         Whether to show the mean curve. Default is True.
     - show_hdi: bool, optional
         Whether to show the highest density interval (HDI) curve. Default is False.
+    - antigen: For combined models, the antigen to be plotted.
+    - interval: For time variable models, which interval should be plotted?
     - sample_kwds: dict, optional
         Additional keyword arguments for customizing the sample curve plot. Passed to
         plt.plot.
@@ -216,12 +229,36 @@ def plot_protection(
     hdi_kwds = {} if hdi_kwds is None else hdi_kwds
     mean_kwds = {} if mean_kwds is None else mean_kwds
 
-    post = az.extract(idata)
+    post = az.extract(idata) if isinstance(idata, az.InferenceData) else idata
 
     x = np.linspace(xmin, xmax)
-    y = 1 - abd.logistic(
-        x=x[:, np.newaxis], a=post["a"].values, b=post["b"].values, d=1
-    )
+
+    a = post["a"]
+    b = post["b"]
+
+    if antigen is not None:
+        a = a.sel(titers=antigen)
+        b = b.sel(titers=antigen)
+
+    if interval is not None:
+        a = a.sel(intervals=interval)
+
+        if "intervals" in b.dims:
+            b = b.sel(intervals=interval)
+
+    if a.dims != ("sample",):
+        raise ValueError(
+            f"expected a.dims to be ('sample',) but is {a.dims}. Did you forget to "
+            "specify an antigen / interval for a combined / time variable model?"
+        )
+
+    if b.dims != ("sample",):
+        raise ValueError(
+            f"expected b.dims to be ('sample',) but is {b.dims}. Did you forget to "
+            "specify an antigen for a combined model?"
+        )
+
+    y = 1.0 - abd.logistic(x=x[:, np.newaxis], a=a.values, b=b.values, d=1.0)
 
     if n_samples:
         if n_samples > y.shape[1]:
