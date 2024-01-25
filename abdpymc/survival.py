@@ -125,9 +125,9 @@ class SurvivalAnalysis:
         titer = {"s": self.s_titer, "n": self.n_titer}[antigen]
         coords = dict(intervals=self.intervals)
         with pm.Model(coords=coords) as model:
-            lam0 = make_hierarchical_lam0(dims="intervals")
             a = pm.Normal("a", 0.0, 1.0)
-            b = pm.Normal("b", 0.0, 1.0)
+            b = pm.TruncatedNormal("b", mu=0.0, sigma=0.5, upper=0.0)
+            lam0 = make_hierarchical_lam0(dims="intervals", hyper_mu=-3.0)
             lam = lam0 / (1.0 + np.exp((titer - a) @ -b))
             pm.Poisson("obs", exposure * lam, observed=infected)
 
