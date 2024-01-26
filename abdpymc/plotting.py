@@ -196,38 +196,31 @@ def plot_protection(
     sample_kwds: Optional[dict] = None,
     hdi_kwds: Optional[dict] = None,
     mean_kwds: Optional[dict] = None,
+    ax: Optional[mpl.axes.Axes] = None,
 ) -> None:
     """
     Plot posterior protection curve.
 
-    Parameters:
-    - idata: InferenceData
-        The InferenceData object containing the posterior samples.
-    - n_samples: int, optional
-        The number of posterior samples to plot. Default is 250.
-    - xmin: float, optional
-        The minimum x-axis value. Default is -1.
-    - xmax: float, optional
-        The maximum x-axis value. Default is 6.
-    - show_mean: bool, optional
-        Whether to show the mean curve. Default is True.
-    - show_hdi: bool, optional
-        Whether to show the highest density interval (HDI) curve. Default is False.
-    - antigen: For combined models, the antigen to be plotted.
-    - interval: For time variable models, which interval should be plotted?
-    - sample_kwds: dict, optional
-        Additional keyword arguments for customizing the sample curve plot. Passed to
-        plt.plot.
-    - hdi_kwds: dict, optional
-        Additional keyword arguments for customizing the HDI curve plot. Passed to
-        plt.fill_between.
-    - mean_kwds: dict, optional
-        Additional keyword arguments for customizing the mean curve plot. Passed to
-        plt.plot.
+    Arguments:
+        idata: InferenceData object or Dataset containing the posterior samples.
+        n_samples: The number of posterior samples to plot. Default is 250.
+        xmin: The minimum x-axis value. Default is -1.
+        xmax: The maximum x-axis value. Default is 6.
+        show_mean: Whether to show the mean curve. Default is True.
+        show_hdi: Whether to show the highest density interval (HDI) curve. Default is False.
+        antigen: For combined models, the antigen to be plotted.
+        interval: For time variable models, which interval should be plotted?
+        sample_kwds: Additional keyword arguments for customizing the sample curve plot.
+            Passed to plt.plot.
+        hdi_kwds: Additional keyword arguments for customizing the HDI curve plot.
+            Passed to plt.fill_between.
+        mean_kwds: Additional keyword arguments for customizing the mean curve plot.
+            Passed to plt.plot.
     """
     sample_kwds = {} if sample_kwds is None else sample_kwds
     hdi_kwds = {} if hdi_kwds is None else hdi_kwds
     mean_kwds = {} if mean_kwds is None else mean_kwds
+    ax = ax or plt.gca()
 
     post = az.extract(idata) if isinstance(idata, az.InferenceData) else idata
 
@@ -264,7 +257,7 @@ def plot_protection(
         if n_samples > y.shape[1]:
             raise ValueError("asking to show more samples than there are")
         samples = np.linspace(0, y.shape[1] - 1, num=n_samples, dtype=int)
-        plt.plot(
+        ax.plot(
             x,
             y[:, samples],
             c=sample_kwds.pop("c", "black"),
@@ -274,7 +267,7 @@ def plot_protection(
 
     if show_hdi:
         hdi = az.hdi(y.T)
-        plt.fill_between(x, hdi[:, 0], hdi[:, 1], **hdi_kwds)
+        ax.fill_between(x, hdi[:, 0], hdi[:, 1], **hdi_kwds)
 
     if show_mean:
-        plt.plot(x, y.mean(axis=1), **mean_kwds)
+        ax.plot(x, y.mean(axis=1), **mean_kwds)
