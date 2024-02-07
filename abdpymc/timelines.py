@@ -4,6 +4,7 @@ from typing import Iterable, Union, Optional, Callable
 import time
 import functools
 import logging
+import string
 
 import xarray as xr
 import arviz as az
@@ -423,6 +424,7 @@ def plot_multiple_individuals(
     ax_width: int = 4,
     individuals: Optional[tuple[int, ...]] = None,
     subplots_kwds: Optional[dict] = None,
+    lettered_labels: Optional[bool] = False,
     **kwds,
 ):
     """
@@ -434,6 +436,7 @@ def plot_multiple_individuals(
         ax_width: Width of an individual plot.
         individuals: Indexes of individuals to plot.
         subplots_kwds: Dict of keyword arguments to pass to plt.subplots.
+        lettered_labels: Add letter labels to the top left of each ax.
         **kwds passed to plot_individual.
     """
     width = ax_width * ncols
@@ -451,8 +454,22 @@ def plot_multiple_individuals(
     individuals = range(nrows * ncols) if individuals is None else individuals
 
     for i, ind_i in enumerate(individuals):
-        plt.sca(fig.axes[i])
+
+        ax = fig.axes[i]
+
+        plt.sca(ax)
         plot_individual(ind_i=ind_i, **kwds)
+
+        if lettered_labels:
+            ax.text(
+                0.02,
+                0.98,
+                string.ascii_uppercase[i],
+                weight="bold",
+                transform=ax.transAxes,
+                va="top",
+                fontsize=16,
+            )
 
 
 def plot_multiple_individuals_batches(
@@ -574,6 +591,11 @@ def main():
         "is passed.",
         action="store_true",
     )
+    parser.add_argument(
+        "--lettered_labels",
+        action="store_true",
+        help="If using --individuals, add alphabetical labels to each ax.",
+    )
     args = parser.parse_args()
 
     idata = az.from_netcdf(args.idata)
@@ -603,7 +625,11 @@ def main():
 
     if args.individuals:
         plot_multiple_individuals(
-            individuals=args.individuals, nrows=args.nrows, ncols=args.ncols, **kwds
+            individuals=args.individuals,
+            nrows=args.nrows,
+            ncols=args.ncols,
+            lettered_labels=args.lettered_labels,
+            **kwds,
         )
         for path in args.fname:
             plt.savefig(path, dpi=300, bbox_inches="tight")
