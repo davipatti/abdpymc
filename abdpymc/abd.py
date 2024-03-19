@@ -45,7 +45,12 @@ class AntigenTiterData:
 
 class CombinedTiterData:
     def __init__(
-        self, t0: pd.Period, df: pd.DataFrame, vacs: np.ndarray, pcrpos: np.ndarray
+        self,
+        t0: pd.Period,
+        df: pd.DataFrame,
+        vacs: np.ndarray,
+        pcrpos: np.ndarray,
+        ageenroll: Optional[dict] = None,
     ) -> None:
         """
         Manage OD, PCR+ and vaccination data for an antibody dynamics analysis.
@@ -58,6 +63,7 @@ class CombinedTiterData:
                 just load directly from this dataframe. See to_disk and from_disk.
             vacs: Similar to df, but for the vaccination data. See to_disk and from_disk.
             pcrpos: Similar to df, but for the PCR+ data. See to_disk and from_disk.
+            ageenroll: Dict containing enrollment age.
 
         Attributes:
             df: All the data. sample_i enumerates unique samples.
@@ -103,6 +109,7 @@ class CombinedTiterData:
             .drop_duplicates()
             .iterrows()
         )
+        self.record_ids = np.array([ids[1] for ids in self.ind_ids])
 
         # The following 2 arrays are (n_inds, n_gaps) that contain 1's if an event
         # (vaccination or PCR+) happened to an individual in a month, or 0 otherwise.
@@ -119,6 +126,11 @@ class CombinedTiterData:
         )
 
         self.coords = dict(ind=np.arange(self.n_inds), gap=np.arange(self.n_gaps))
+
+        if ageenroll is not None:
+            self.ageenroll = np.array(
+                [ageenroll[record_id] for record_id in self.record_ids]
+            )
 
     def __repr__(self) -> str:
         return f"CombinedTiterData(t0={self.t0}, n_inds={self.n_inds})"
@@ -176,13 +188,20 @@ class CombinedTiterData:
         vacs = np.loadtxt(path("vacs.txt"))
         pcrpos = np.loadtxt(path("pcrpos.txt"))
 
+        try:
+            ageenroll = pd.read_csv(
+                path("individuals.csv"), header=None, index_col=0
+            ).squeeze()
+        except FileNotFoundError:
+            ageenroll = None
+
         if vacs.shape != pcrpos.shape:
             raise ValueError("vacs and pcrpos are different shapes")
 
         with open(path("t0.txt"), "r") as fobj:
             t0 = pd.Period(fobj.readline())
 
-        return cls(t0=t0, df=df, vacs=vacs, pcrpos=pcrpos)
+        return cls(t0=t0, df=df, vacs=vacs, pcrpos=pcrpos, ageenroll=ageenroll)
 
     def calculate_splits(self, delta: bool, omicron: bool) -> tuple[int]:
         """
