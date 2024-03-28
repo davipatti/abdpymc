@@ -1,3 +1,4 @@
+import logging
 from typing import Iterable, Literal, Optional
 
 import xarray as xr
@@ -156,9 +157,14 @@ def plot_p_infection_relative_to_known_infection(
         )
 
     if cum_mean_line:
+        cumsum = np.nanmean(infp_overlaid, axis=0).cumsum()
+        logging.info(
+            "cummulative posterior mean infection probabilities:\n"
+            f"{np.round(cumsum, decimals=3)}"
+        )
         ax.plot(
             x,
-            np.nanmean(infp_overlaid, axis=0).cumsum(),
+            cumsum,
             linewidth=2,
             marker="o",
             markersize=5,
