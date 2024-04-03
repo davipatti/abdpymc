@@ -179,7 +179,7 @@ plot_omicron_background = functools.partial(
     start=pd.Period("2022-01"),
     width=11,
     facecolor="#e0deed",
-    label="Ο",
+    label="Omicron",
 )
 
 
@@ -188,7 +188,7 @@ plot_delta_background = functools.partial(
     start=pd.Period("2021-07"),
     width=6,
     facecolor="#fee7cd",
-    label="Δ",
+    label="Delta",
 )
 
 
@@ -197,7 +197,15 @@ plot_predelta_background = functools.partial(
     start=pd.Period("2020-05"),
     width=14,
     facecolor="#daf1ed",
-    label="pΔ",
+    label="pre-Delta",
+)
+
+plot_preomicron_background = functools.partial(
+    plot_variant_background,
+    start=pd.Period("2020-05"),
+    width=20,
+    facecolor="#daf1ed",
+    label="pre-Omicron",
 )
 
 
@@ -324,57 +332,20 @@ def plot_individual(
 
     # Background patches
     kwds = dict(t0=data.t0, ymin=ymin, ymax=ymax, alpha=0.25, fontsize=label_fontsize)
-    plot_predelta_background(**kwds)
-    plot_delta_background(**kwds)
+    plot_preomicron_background(**kwds)
     plot_omicron_background(**kwds)
 
+    # ELISA titers
     if show_s_data or show_n_data:
-        # Plot inflection titers
         ind_i_samples = df_ind_i["sample"].unique()
         ind_i_ititer_samples = df_ititers.index.intersection(ind_i_samples)
-        df_ititers_ind_i = df_ititers.loc[ind_i_ititer_samples]
-        x = df_ititers_ind_i["elapsed_months"] + 0.5
-        y_s = df_ititers_ind_i["i-10222020-S"]
-        y_n = df_ititers_ind_i["i-40588-V08B"]
-        kwds = dict(lw=0.5, ec="white", zorder=15)
+        kwds = dict(ax=ax, df=df_ititers.loc[ind_i_ititer_samples])
 
         if show_s_data:
-            ax.scatter(x, y_s, c=data.plot_conf.s["c"], **kwds)
+            plot_titers(measurement="i-10222020-S", color=data.plot_conf.s["c"], **kwds)
+
         if show_n_data:
-            ax.scatter(x, y_n, c=data.plot_conf.n["c"], **kwds)
-
-        # 1:40 OD readings
-        kwds = dict(marker="+", s=10, zorder=5, lw=0.75)
-        if show_s_data:
-            y_140_s = df_ind_i.query("log_dilution == 0 & measurement == '10222020-S'")
-
-            if show_only_1_40_without_ititers:
-                y_140_s = y_140_s.query(
-                    "sample not in @s_ititer_samples",
-                    local_dict=dict(s_ititer_samples=y_s.index),
-                )
-
-            ax.scatter(
-                y_140_s.index + 0.5,
-                scale(y_140_s["od"] / 1.97),
-                c=data.plot_conf.s["c"],
-                **kwds,
-            )
-        if show_n_data:
-            y_140_n = df_ind_i.query("log_dilution == 0 & measurement == '40588-V08B'")
-
-            if show_only_1_40_without_ititers:
-                y_140_n = y_140_n.query(
-                    "sample not in @n_ititer_samples",
-                    local_dict=dict(n_ititer_samples=y_n.index),
-                )
-
-            ax.scatter(
-                y_140_n.index + 0.5,
-                scale(y_140_n["od"] / 1.92),
-                c=data.plot_conf.n["c"],
-                **kwds,
-            )
+            plot_titers(measurement="i-40588-V08B", color=data.plot_conf.n["c"], **kwds)
 
     # Individual index and record ID
     ax.text(
@@ -394,6 +365,37 @@ def plot_individual(
     finish_timeline_ax(ax, data)
 
     return ax
+
+
+def plot_titers(df: pd.DataFrame, measurement: str, ax: mpl.axes.Axes, color: str):
+
+    # Rename column containing dilutions which doesn't play nicely with df.query.
+    df = df.rename(columns={f"{measurement} dilutions": "dilutions"}).copy()
+
+    df_single = df.query("dilutions == '40'")
+    if not df_single.empty:
+        ax.scatter(
+            df_single["elapsed_months"] + 0.5,
+            df_single[measurement],
+            c=color,
+            marker="x",
+            s=5,
+            lw=0.5,
+            zorder=15,
+        )
+
+    df_multiple = df.query("dilutions != '40'")
+    if not df_multiple.empty:
+        ax.scatter(
+            df_multiple["elapsed_months"] + 0.5,
+            df_multiple[measurement],
+            c=color,
+            marker="o",
+            s=20,
+            ec="white",
+            lw=0.5,
+            zorder=15,
+        )
 
 
 def finish_timeline_ax(
@@ -493,7 +495,7 @@ def plot_multiple_individuals_batches(
 
     for batch in grouper(individuals, batch_size):
         plot_multiple_individuals(nrows=nrows, ncols=ncols, individuals=batch, **kwds)
-        plt.savefig(fname.format(batch[0], batch[-1]), bbox_inches="tight")
+        plt.savefig(fname.format(batch[0], batch[-1]), bbox_inches="tight", dpi=300)
         plt.close()
 
 
@@ -532,7 +534,7 @@ def main():
         "Use --individuals to plot only specific individuals or --pcrpos_only to plot "
         "only individuals that have a PCR+ test result.",
     )
-    parser.add_argument("--idata", help="Path of .nc file")
+    parser.add_argument("--idata", help="Path of .nc file", required=True)
     parser.add_argument(
         "--png_pref",
         help="Prefix of PNG filenames to save. Files will have this prefix '-{}-{}.png' "
@@ -543,6 +545,7 @@ def main():
         help="Path to directory for generating CombinedAllITitersData object "
         "(default=cohort_data).",
         default="cohort_data",
+        required=True,
     )
     parser.add_argument(
         "--no_cumm_p",
