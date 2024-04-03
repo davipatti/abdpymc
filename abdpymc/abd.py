@@ -59,8 +59,7 @@ class CombinedTiterData:
             t0: The fist month in the analysis. All gap indexes are relative to this
                 first month.
             n_inds: Only generate data for this many individuals.
-            df: Don't make calls to the mfsera library to generate data, instead
-                just load directly from this dataframe. See to_disk and from_disk.
+            df: See to_disk and from_disk.
             vacs: Similar to df, but for the vaccination data. See to_disk and from_disk.
             pcrpos: Similar to df, but for the PCR+ data. See to_disk and from_disk.
             ageenroll: Dict containing enrollment age.
