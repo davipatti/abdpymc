@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-from typing import Iterable, Union, Optional, Callable
+from typing import Iterable, Union, Optional, Callable, Literal
 import time
 import functools
 import logging
 import string
+import warnings
 
 import xarray as xr
 import arviz as az
@@ -63,7 +64,7 @@ def hi_lo_scaler(p: Union[Number, Iterable[Number]], lo: Number, hi: Number):
 def load_ititers(path: str, data: abd.CombinedTiterData) -> pd.DataFrame:
     """Load DataFrame containing inflection titers"""
     df = pd.read_csv(path, index_col=0)
-    df["elapsed_months"] = [data.date_to_gap(date) for date in df["Collection Date"]]
+    df["elapsed_months"] = [data.date_to_gap(date) for date in df["collection_date"]]
     return df
 
 
@@ -165,10 +166,10 @@ def plot_variant_background(
     if label:
         ax.text(
             x + width / 2,
-            ymin - (bleed / 2),
+            ymax + 0.02,
             label,
             ha="center",
-            va="center",
+            va="bottom",
             zorder=20,
             fontsize=fontsize,
         )
@@ -180,6 +181,7 @@ plot_omicron_background = functools.partial(
     width=11,
     facecolor="#e0deed",
     label="Omicron",
+    bleed=0,
 )
 
 
@@ -189,6 +191,7 @@ plot_delta_background = functools.partial(
     width=6,
     facecolor="#fee7cd",
     label="Delta",
+    bleed=0,
 )
 
 
@@ -198,6 +201,7 @@ plot_predelta_background = functools.partial(
     width=14,
     facecolor="#daf1ed",
     label="pre-Delta",
+    bleed=0,
 )
 
 plot_preomicron_background = functools.partial(
@@ -206,6 +210,7 @@ plot_preomicron_background = functools.partial(
     width=20,
     facecolor="#daf1ed",
     label="pre-Omicron",
+    bleed=0,
 )
 
 
@@ -295,8 +300,8 @@ def plot_individual(
             x = gap_jitter(*y.shape)
             ax.plot(x, y, c=color, lw=0.5, alpha=0.1)
 
+    # Stairs showing monthly infection probability
     if show_inf_prob or show_cuminf_prob:
-        # Stairs showing monthly infection probability
         inf_p = (
             post.sel(gap=slice(None, last_gap), ind=ind_i).mean(dim="sample").i
             if post_mean is None
@@ -339,22 +344,26 @@ def plot_individual(
     if show_s_data or show_n_data:
         ind_i_samples = df_ind_i["sample"].unique()
         ind_i_ititer_samples = df_ititers.index.intersection(ind_i_samples)
-        kwds = dict(ax=ax, df=df_ititers.loc[ind_i_ititer_samples])
+
+        kwds = dict(
+            ax=ax,
+            df=df_ititers.loc[ind_i_ititer_samples],
+            distinguish_single_vs_multiple=False,
+            hdi=True,
+        )
 
         if show_s_data:
-            plot_titers(measurement="i-10222020-S", color=data.plot_conf.s["c"], **kwds)
+            plot_titers(antigen="10222020-S", color=data.plot_conf.s["c"], **kwds)
 
         if show_n_data:
-            plot_titers(measurement="i-40588-V08B", color=data.plot_conf.n["c"], **kwds)
+            plot_titers(antigen="40588-V08B", color=data.plot_conf.n["c"], **kwds)
 
     # Individual index and record ID
     ax.text(
-        1,
-        1.02,
+        0,
+        1.01,
         f"i:{ind_i} r:{record_id}",
         transform=ax.transAxes,
-        ha="right",
-        va="bottom",
         fontsize=label_fontsize,
     )
 
@@ -367,34 +376,72 @@ def plot_individual(
     return ax
 
 
-def plot_titers(df: pd.DataFrame, measurement: str, ax: mpl.axes.Axes, color: str):
+def plot_titers(
+    df: pd.DataFrame,
+    antigen: Literal["10222020-S", "40588-V08B"],
+    ax: mpl.axes.Axes,
+    color: str,
+    distinguish_single_vs_multiple: bool = False,
+    hdi: bool = True,
+):
+    """
+    Plot titers inferred independently of the antibody dynamics framework.
 
-    # Rename column containing dilutions which doesn't play nicely with df.query.
-    df = df.rename(columns={f"{measurement} dilutions": "dilutions"}).copy()
+    Args:
+        df: DataFrame containing the titers.
+        antigen: The catalog number of the antigen to plot.
+        ax: Matplotlib ax.
+        color: Color for the data.
+        distinguish_single_multiple: Use different markers for titers that were inferred
+            using a single dilution vs. those inferred using multiple dilutions.
+        hdi: Show the HDI.
+    """
+    kwds = dict(c=color, lw=0.5, zorder=15)
 
-    df_single = df.query("dilutions == '40'")
-    if not df_single.empty:
+    df = df.query(f"antigen == '{antigen}'")
+
+    if distinguish_single_vs_multiple:
+        df_single = df.query("dilutions == '40'")
+        # if not df_single.empty:
         ax.scatter(
             df_single["elapsed_months"] + 0.5,
-            df_single[measurement],
-            c=color,
+            df_single["titer"],
             marker="x",
             s=5,
-            lw=0.5,
-            zorder=15,
+            **kwds,
         )
 
-    df_multiple = df.query("dilutions != '40'")
-    if not df_multiple.empty:
+        df_multiple = df.query("dilutions != '40'")
+        # if not df_multiple.empty:
         ax.scatter(
             df_multiple["elapsed_months"] + 0.5,
-            df_multiple[measurement],
-            c=color,
+            df_multiple["titer"],
             marker="o",
             s=20,
             ec="white",
-            lw=0.5,
-            zorder=15,
+            **kwds,
+        )
+    else:
+        ax.scatter(
+            df["elapsed_months"] + 0.5,
+            df["titer"],
+            marker="o",
+            s=20,
+            ec="white",
+            **kwds,
+        )
+
+    if hdi:
+        ax.errorbar(
+            x=df["elapsed_months"] + 0.5,
+            y=df["titer"],
+            yerr=np.stack([df["titer"] - df["hdi_lo"], df["hdi_hi"] - df["titer"]]),
+            fmt="none",
+            elinewidth=0.5,
+            c=color,
+            alpha=0.5,
+            capsize=1.0,
+            capthick=0.5,
         )
 
 
@@ -537,11 +584,12 @@ def main():
     parser.add_argument("--idata", help="Path of .nc file", required=True)
     parser.add_argument(
         "--png_pref",
-        help="Prefix of PNG filenames to save. Files will have this prefix '-{}-{}.png' "
-        "appended. The index of the first and last individuals occupy the curly braces.",
+        help="Prefix of PNG filenames to save. Files will have this suffix appended: "
+        "'-{}-{}.png'. The index of the first and last individuals occupy the curly "
+        "braces.",
     )
     parser.add_argument(
-        "--ititers_data",
+        "--cohort_data",
         help="Path to directory for generating CombinedAllITitersData object "
         "(default=cohort_data).",
         default="cohort_data",
@@ -603,7 +651,7 @@ def main():
 
     idata = az.from_netcdf(args.idata)
 
-    data = abd.CombinedTiterData.from_disk(args.ititers_data)
+    data = abd.CombinedTiterData.from_disk(args.cohort_data)
 
     splits = (
         data.calculate_splits(delta=args.split_delta, omicron=args.split_omicron)
@@ -615,7 +663,7 @@ def main():
 
     post_mean = compute_posterior_mean(post)
 
-    df_ititers = load_ititers(path=f"{args.ititers_data}/ititers.csv", data=data)
+    df_ititers = load_ititers(path=f"{args.cohort_data}/ititers.csv", data=data)
 
     kwds = dict(
         data=data,
@@ -627,6 +675,15 @@ def main():
     )
 
     if args.individuals:
+        if len(args.individuals) != args.nrows * args.ncols:
+            warnings.warn(
+                f"""
+                Mismatch between number of individuals ({len(args.individuals)}) and
+                number of rows ({args.nrows}) and columns ({args.ncols}). Use --nrows and
+                --ncols.
+                """
+            )
+
         plot_multiple_individuals(
             individuals=args.individuals,
             nrows=args.nrows,
