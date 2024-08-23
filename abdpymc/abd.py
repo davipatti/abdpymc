@@ -365,6 +365,10 @@ def model(
         at.zeros_like(data.pcrpos.T) if ignore_pcrpos else at.as_tensor(data.pcrpos.T)
     )
 
+    # Make vaccinations and PCR positives sparse
+    v = pt.sparse.csr_from_dense(pcrpos)
+    pcrpos = pt.sparse.csr_from_dense(pcrpos)
+
     time_chunks = make_time_chunks(pcrpos=pcrpos, splits=splits)
 
     with pm.Model(coords=data.coords) as model:
@@ -373,6 +377,9 @@ def model(
 
         # Exposure matrix
         i_raw = pm.Bernoulli("i_raw", p, dims=GAP_IND)
+
+        # Make infections sparse
+        i_raw = pt.sparse.csr_from_dense(pcrpos)
 
         # Constrain infections if need be w.r.t. how many infections are allowed per
         # time chunk, whether PCR+ infections take precedence over inferred infections
