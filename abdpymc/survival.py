@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Generator, Iterable, Literal, Callable, Optional
+import logging
 
 import arviz as az
 import numpy as np
@@ -112,23 +113,62 @@ class SurvivalAnalysis:
                 :, self.start : self.end - 1
             ]
 
-    def model_alone(self, antigen: Literal["s", "n"]) -> pm.Model:
+    def model_alone(self, antigen: Literal["S", "N"]) -> pm.Model:
         """
         Bayesian cox proportional hazards model. S or N titer is used as predictor of
         infection risk in subsequent month.
 
         Args:
-            antigen: 's' (spike) or 'n' (nucleocapsid).
+            antigen: 'S' (spike) or 'N' (nucleocapsid).
         """
         infected = convert_nan_to_zero(self.infected)
         exposure = convert_nan_to_zero(self.exposure)
-        titer = {"s": self.s_titer, "n": self.n_titer}[antigen]
+        titer = {"S": self.s_titer, "N": self.n_titer}[antigen]
         coords = dict(intervals=self.intervals)
         with pm.Model(coords=coords) as model:
             a = pm.Normal("a", 0.0, 1.0)
-            b = pm.TruncatedNormal("b", mu=0.0, sigma=0.5, upper=0.0)
+            b = pm.Normal("b", 0.0, 1.0)
             lam0 = make_hierarchical_lam0(dims="intervals", hyper_mu=-3.0)
             lam = lam0 / (1.0 + np.exp((titer - a) @ -b))
+            pm.Poisson("obs", exposure * lam, observed=infected)
+
+        return model
+
+    @property
+    def model_combined(self) -> pm.Model:
+        """
+        Bayesian cox proportional hazards model. S and N titer are used as predictor of
+        infection risk in subsequent month.
+        """
+        infected = convert_nan_to_zero(self.infected)
+        exposure = convert_nan_to_zero(self.exposure)
+        X = np.stack((self.s_titer, self.n_titer), axis=2)
+        coords = dict(intervals=self.intervals, titers=["S", "N"])
+        with pm.Model(coords=coords) as model:
+            a = pm.Normal("a", mu=0.0, sigma=0.5, dims="titers")
+            b = pm.Normal("b", mu=0.0, sigma=0.5, dims="titers")
+            lam0 = make_hierarchical_lam0(dims="intervals", hyper_mu=-3.0)
+            lam = lam0 / (1.0 + np.exp(((X - a) * -b).sum(axis=2)))
+            pm.Poisson("obs", exposure * lam, observed=infected)
+        return model
+
+    def model_alone_groups(
+        self, antigen: Literal["S", "N"], groups: np.ndarray, group_name: str
+    ) -> pm.Model:
+        infected = convert_nan_to_zero(self.infected)
+        exposure = convert_nan_to_zero(self.exposure)
+        coords = {
+            "intervals": self.intervals,
+            group_name: np.sort(np.unique(groups)),
+        }
+        titer = {"S": self.s_titer, "N": self.n_titer}[antigen]
+
+        with pm.Model(coords=coords) as model:
+            lam0 = make_hierarchical_lam0(dims="intervals")
+            a = make_hierarchical_normal("a", dims=group_name)
+            b = pm.Normal("b", 0.0, 0.5)
+            x = (titer - a[groups, np.newaxis]) * -b
+            lam = lam0 / (1.0 + np.exp(x))
             pm.Poisson("obs", exposure * lam, observed=infected)
 
         return model
@@ -237,9 +277,9 @@ def load_or_sample_model(
     path: str, model: pm.Model | Callable, *args, **kwargs
 ) -> az.InferenceData:
     """
-    Try to load a pymc trace from a path. If the path doesn't exist then generate
-    the trace by calling model(*args, **kwargs), save the inference data to path, and then
-    return it.
+    Try to load a pymc trace from a path. If the path doesn't exist then generate the
+    trace by sampling from model or calling model(*args, **kwargs). The resulting
+    inference data is saved to path, then returned.
 
     Args:
         path: Path to NetCDF file.
@@ -254,14 +294,18 @@ def load_or_sample_model(
 
     try:
         idata = az.from_netcdf(path)
+        logging.info(f"loaded exisitng NetCDF: {path}")
 
     except FileNotFoundError:
         if isinstance(model, pm.Model):
+            logging.info("sampling from pymc model passed")
             with model:
                 idata = pm.sample(*args, **kwargs)
         else:
+            logging.info("sampling by calling model")
             idata = model(*args, **kwargs)
 
+        logging.info(f"writing new NetCDF: {path}")
         idata.to_netcdf(path)
 
     finally:
