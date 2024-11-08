@@ -13,6 +13,7 @@ from .abd import (
     mask_three_gaps,
     model,
     scalar_variables,
+    temp_response,
     TwoTimeChunks,
 )
 from . import plotting
@@ -42,6 +43,7 @@ __all__ = [
     "simulation",
     "survival",
     "SurvivalAnalysis",
+    "temp_response",
     "timelines",
     "TwoTimeChunks",
 ]

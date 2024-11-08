@@ -300,8 +300,8 @@ class TestMaskMultipleInfectionsChunks(unittest.TestCase):
             # --------------------------------------------
             [1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 0],
             [0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]
 
         out = abd.mask_multiple_infections_2_chunks(input, split=4).eval()
@@ -746,6 +746,234 @@ class TestComputeChunkedCumProbability(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "p is not 1D"):
             p = np.random.uniform(0, 1, size=(10, 10))
             abd.compute_chunked_cum_p(p)
+
+
+class TestTempResponse(unittest.TestCase):
+    """
+    Tests for abd.temp_response
+    """
+
+    def test_temp_response_shape(self):
+        """
+        The output shape should match the input shape.
+        """
+        n_gaps = 10
+        n_inds = 5
+        exposure = at.as_tensor_variable(np.random.randint(0, 2, size=(n_gaps, n_inds)))
+        response = abd.temp_response(exposure, n_inds=n_inds, temp=1.0, rho=0.9).eval()
+        self.assertEqual(tuple(exposure.shape.eval()), (n_gaps, n_inds))
+        self.assertEqual(response.shape, (n_gaps, n_inds))
+
+    def test_temp_response_values(self):
+        """
+        Test the correct values are returned.
+        """
+        exposure = at.as_tensor_variable(
+            [
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 0, 0],
+                [0, 1, 0],
+            ]
+        )
+        response = abd.temp_response(exposure, n_inds=3, temp=1.0, rho=0.5).eval()
+        expected_response = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.5, 1.0, 0.0],
+                [0.25, 0.5, 1.0],
+                [1.125, 0.25, 0.5],
+                [0.5625, 1.125, 0.25],
+            ]
+        )
+        np.testing.assert_almost_equal(response, expected_response)
+
+    def test_temp_response_no_exposure(self):
+        """
+        Test the response when there is no exposure.
+        """
+        exposure = at.as_tensor_variable(np.zeros((10, 5)))
+        response = abd.temp_response(exposure, n_inds=5, temp=1.0, rho=0.9).eval()
+        expected_response = np.zeros((10, 5))
+        np.testing.assert_almost_equal(response, expected_response)
+
+    def test_temp_response_values_mixed_infections(self):
+        """
+        Test the correct values are returned for a mixture of 0-2 infections per column.
+        """
+        exposure = at.as_tensor_variable(
+            [
+                [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+                [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+                [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+                [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
+            ]
+        )
+        response = abd.temp_response(exposure, n_inds=11, temp=1.0, rho=0.5).eval()
+        expected_response = np.array(
+            [
+                [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0],
+                [0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.5, 1.0, 0.0, 0.5, 1.0],
+                [0.25, 0.5, 1.0, 0.25, 0.5, 1.0, 0.25, 0.5, 1.0, 0.25, 0.5],
+                [1.125, 0.25, 0.5, 1.125, 0.25, 0.5, 1.125, 0.25, 0.5, 1.125, 0.25],
+                [
+                    0.5625,
+                    1.125,
+                    0.25,
+                    0.5625,
+                    1.125,
+                    0.25,
+                    0.5625,
+                    1.125,
+                    0.25,
+                    0.5625,
+                    1.125,
+                ],
+                [
+                    0.28125,
+                    0.5625,
+                    1.125,
+                    0.28125,
+                    0.5625,
+                    1.125,
+                    0.28125,
+                    0.5625,
+                    1.125,
+                    0.28125,
+                    0.5625,
+                ],
+                [
+                    1.140625,
+                    0.28125,
+                    0.5625,
+                    1.140625,
+                    0.28125,
+                    0.5625,
+                    1.140625,
+                    0.28125,
+                    0.5625,
+                    1.140625,
+                    0.28125,
+                ],
+                [
+                    0.5703125,
+                    1.140625,
+                    0.28125,
+                    0.5703125,
+                    1.140625,
+                    0.28125,
+                    0.5703125,
+                    1.140625,
+                    0.28125,
+                    0.5703125,
+                    1.140625,
+                ],
+                [
+                    0.28515625,
+                    0.5703125,
+                    1.140625,
+                    0.28515625,
+                    0.5703125,
+                    1.140625,
+                    0.28515625,
+                    0.5703125,
+                    1.140625,
+                    0.28515625,
+                    0.5703125,
+                ],
+                [
+                    1.142578125,
+                    0.28515625,
+                    0.5703125,
+                    1.142578125,
+                    0.28515625,
+                    0.5703125,
+                    1.142578125,
+                    0.28515625,
+                    0.5703125,
+                    1.142578125,
+                    0.28515625,
+                ],
+                [
+                    0.5712890625,
+                    1.142578125,
+                    0.28515625,
+                    0.5712890625,
+                    1.142578125,
+                    0.28515625,
+                    0.5712890625,
+                    1.142578125,
+                    0.28515625,
+                    0.5712890625,
+                    1.142578125,
+                ],
+                [
+                    0.28564453125,
+                    0.5712890625,
+                    1.142578125,
+                    0.28564453125,
+                    0.5712890625,
+                    1.142578125,
+                    0.28564453125,
+                    0.5712890625,
+                    1.142578125,
+                    0.28564453125,
+                    0.5712890625,
+                ],
+                [
+                    1.142822265625,
+                    0.28564453125,
+                    0.5712890625,
+                    1.142822265625,
+                    0.28564453125,
+                    0.5712890625,
+                    1.142822265625,
+                    0.28564453125,
+                    0.5712890625,
+                    1.142822265625,
+                    0.28564453125,
+                ],
+                [
+                    0.5714111328125,
+                    1.142822265625,
+                    0.28564453125,
+                    0.5714111328125,
+                    1.142822265625,
+                    0.28564453125,
+                    0.5714111328125,
+                    1.142822265625,
+                    0.28564453125,
+                    0.5714111328125,
+                    1.142822265625,
+                ],
+                [
+                    0.28570556640625,
+                    0.5714111328125,
+                    1.142822265625,
+                    0.28570556640625,
+                    0.5714111328125,
+                    1.142822265625,
+                    0.28570556640625,
+                    0.5714111328125,
+                    1.142822265625,
+                    0.28570556640625,
+                    0.5714111328125,
+                ],
+            ]
+        )
+        np.testing.assert_almost_equal(response, expected_response)
 
 
 if __name__ == "__main__":
