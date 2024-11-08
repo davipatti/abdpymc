@@ -3,7 +3,7 @@ name = "abdpymc"
 description = "Antibody dynamics analysis using PyMC"
 version = "0.1.2"
 authors = [{ name = "David Pattinson", email = "david.pattinson@wisc.edu" }]
-dependencies = ["arviz", "matplotlib", "numpy", "pandas", "pymc"]
+dependencies = ["arviz", "matplotlib", "numpy", "pandas", "pydantic", "pymc"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pyflakes", "pycodestyle"]
