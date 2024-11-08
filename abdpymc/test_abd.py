@@ -789,18 +789,9 @@ class TestTempResponse(unittest.TestCase):
         )
         np.testing.assert_almost_equal(response, expected_response)
 
-    def test_temp_response_no_exposure(self):
+    def test_temp_response_values_more_gaps_more_individuals(self):
         """
-        Test the response when there is no exposure.
-        """
-        exposure = at.as_tensor_variable(np.zeros((10, 5)))
-        response = abd.temp_response(exposure, n_inds=5, temp=1.0, rho=0.9).eval()
-        expected_response = np.zeros((10, 5))
-        np.testing.assert_almost_equal(response, expected_response)
-
-    def test_temp_response_values_mixed_infections(self):
-        """
-        Test the correct values are returned for a mixture of 0-2 infections per column.
+        Like above, but bigger array.
         """
         exposure = at.as_tensor_variable(
             [
@@ -973,6 +964,15 @@ class TestTempResponse(unittest.TestCase):
                 ],
             ]
         )
+        np.testing.assert_almost_equal(response, expected_response)
+
+    def test_temp_response_no_exposure(self):
+        """
+        Test the response when there is no exposure.
+        """
+        exposure = at.as_tensor_variable(np.zeros((10, 5)))
+        response = abd.temp_response(exposure, n_inds=5, temp=1.0, rho=0.9).eval()
+        expected_response = np.zeros((10, 5))
         np.testing.assert_almost_equal(response, expected_response)
 
 
