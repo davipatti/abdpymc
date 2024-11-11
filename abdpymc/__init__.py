@@ -13,7 +13,6 @@ from .abd import (
     mask_three_gaps,
     model,
     scalar_variables,
-    temp_response,
     TwoTimeChunks,
 )
 from . import abd

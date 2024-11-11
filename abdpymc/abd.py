@@ -222,9 +222,62 @@ class CombinedTiterData:
         return tuple(splits)
 
 
-def temp_response(exposure, n_inds, temp, rho):
+def make_decay_design(n_gaps):
     """
-    Compute a temporary response.
+    Make a decay design matrix for calculating the waning exponent given an infection in each row.
+    Each row contains the waning parameter exponent given an infection in a different time gap.
+    Values in the lower left triangle of the array should be ignored.
+
+    Example:
+
+        >>> make_design(5).eval()
+        array([[0, 1, 2, 3, 4],
+            [0, 0, 1, 2, 3],
+            [0, 0, 0, 1, 2],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0]])
+    """
+    return at.maximum(0, at.arange(n_gaps) - at.arange(n_gaps)[:, None])
+
+
+def _temp_response_scalar_rho(exposure, n_inds, temp, rho):
+    """
+    Compute a temporary response using a scalar rho.
+
+    Args:
+        exposure: (n_gaps, n_inds) array of exposures.
+        n_inds: Number of individuals in the dataset.
+        temp: The magnitude of the temporary response.
+        rho: Gap to gap waning proportion.
+    """
+    n_gaps = int(exposure.shape.eval()[0])
+    design = make_decay_design(n_gaps)
+    offset = at.tril(at.ones_like(design), -1)
+
+    # This is an (n_gap, n_gap) array that contains the temp response given an exposure in each time
+    # gap. The first row captures an exposure in the first gap, second in the second etc...
+    responses_each_gap = (rho**design - offset) * temp
+
+    return (responses_each_gap[:, :, None] * exposure[:, None, :]).sum(axis=0)
+
+
+def _temp_response_vector_rho(exposure, n_inds, temp, rho):
+    """
+    Compute a temporary response using a vector rho. I.e. in this version each individual can have
+    their own value of rho.
+    """
+    n_gaps = int(exposure.shape.eval()[0])
+    design = make_decay_design(n_gaps)
+    offset = at.tril(at.ones_like(design), -1)
+
+    return ((rho ** design[..., None] - offset[..., None]) * exposure[:, None, :]).sum(
+        axis=0
+    )
+
+
+def _temp_response_scan(exposure, n_inds, temp, rho):
+    """
+    Compute a temporary response using pytensor.tensor.scan.
 
     Args:
         exposure: (n_gaps, n_inds) matrix of infections, vaccinations or combination.
@@ -281,7 +334,9 @@ def model_popab_vacsep_nonwane_n(data: AntigenTiterData, i: at.TensorLike):
     temp = pm.Gamma(var("temp"), mu=1.0, sigma=0.5)
     rho = pm.Beta(var("rho"), alpha=10.0, beta=1.0)
 
-    temp_gap_ind = temp_response(exposure=i, n_inds=data.n_inds, temp=temp, rho=rho)
+    temp_gap_ind = _temp_response_scalar_rho(
+        exposure=i, n_inds=data.n_inds, temp=temp, rho=rho
+    )
 
     init = pm.Normal(var("init"), -2, 1)
     mu = pm.Deterministic(var("mu"), perm_gap_ind + temp_gap_ind + init, dims=GAP_IND)
@@ -323,13 +378,13 @@ def model_popab_vacsep_nonwane_s(
 
     # Infection response
     tempinf = pm.Gamma(var("tempinf"), mu=1.0, sigma=0.5)
-    tempinf_gap_ind = temp_response(
+    tempinf_gap_ind = _temp_response_vector_rho(
         exposure=i, n_inds=data.n_inds, temp=tempinf, rho=rho_per_ind
     )
 
     # Vaccination response
     tempvac = pm.Gamma(var("tempvac"), mu=1.0, sigma=0.5)
-    tempvac_gap_ind = temp_response(
+    tempvac_gap_ind = _temp_response_vector_rho(
         exposure=v, n_inds=data.n_inds, temp=tempvac, rho=rho_per_ind
     )
 

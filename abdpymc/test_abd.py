@@ -750,7 +750,7 @@ class TestComputeChunkedCumProbability(unittest.TestCase):
 
 class TestTempResponse(unittest.TestCase):
     """
-    Tests for abd.temp_response
+    Tests for abd.abd._temp_response_scalar_rho
     """
 
     def test_temp_response_shape(self):
@@ -760,7 +760,9 @@ class TestTempResponse(unittest.TestCase):
         n_gaps = 10
         n_inds = 5
         exposure = at.as_tensor_variable(np.random.randint(0, 2, size=(n_gaps, n_inds)))
-        response = abd.temp_response(exposure, n_inds=n_inds, temp=1.0, rho=0.9).eval()
+        response = abd.abd._temp_response_scalar_rho(
+            exposure, n_inds=n_inds, temp=1.0, rho=0.9
+        ).eval()
         self.assertEqual(tuple(exposure.shape.eval()), (n_gaps, n_inds))
         self.assertEqual(response.shape, (n_gaps, n_inds))
 
@@ -777,7 +779,9 @@ class TestTempResponse(unittest.TestCase):
                 [0, 1, 0],
             ]
         )
-        response = abd.temp_response(exposure, n_inds=3, temp=1.0, rho=0.5).eval()
+        response = abd.abd._temp_response_scalar_rho(
+            exposure, n_inds=3, temp=1.0, rho=0.5
+        ).eval()
         expected_response = np.array(
             [
                 [1.0, 0.0, 0.0],
@@ -812,7 +816,9 @@ class TestTempResponse(unittest.TestCase):
                 [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0],
             ]
         )
-        response = abd.temp_response(exposure, n_inds=11, temp=1.0, rho=0.5).eval()
+        response = abd.abd._temp_response_scalar_rho(
+            exposure, n_inds=11, temp=1.0, rho=0.5
+        ).eval()
         expected_response = np.array(
             [
                 [1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0],
@@ -971,13 +977,15 @@ class TestTempResponse(unittest.TestCase):
         Test the response when there is no exposure.
         """
         exposure = at.as_tensor_variable(np.zeros((10, 5)))
-        response = abd.temp_response(exposure, n_inds=5, temp=1.0, rho=0.9).eval()
+        response = abd.abd._temp_response_scalar_rho(
+            exposure, n_inds=5, temp=1.0, rho=0.9
+        ).eval()
         expected_response = np.zeros((10, 5))
         np.testing.assert_almost_equal(response, expected_response)
 
     def test_compare_to_scan_implementation(self):
         """
-        Test that abd.temp_response gives the same result as abd._temp_response_scan for 5 different
+        Test that abd.abd._temp_response_scalar_rho gives the same result as abd._temp_response_scan for 5 different
         combinations of random parameters that are passed to these functions.
         """
         np.random.seed(42)
@@ -996,10 +1004,39 @@ class TestTempResponse(unittest.TestCase):
                 n_gaps=n_gaps, n_inds=n_inds, temp=temp, rho=rho, exposure=exposure
             ):
 
-                response = abd.temp_response(**kwds).eval()
+                response = abd.abd._temp_response_scalar_rho(**kwds).eval()
                 response_scan = abd.abd._temp_response_scan(**kwds).eval()
 
                 np.testing.assert_almost_equal(response, response_scan)
+
+    def test_per_individual_rho(self):
+        """
+        Test temp_response in a simple case with 3 individuals and 10 gaps where rho is an array
+        that contains a different value for each individual.
+        """
+        exposure = at.as_tensor_variable(
+            [
+                [1, 0, 0],
+                [0, 1, 0],
+                [0, 0, 1],
+                [1, 0, 0],
+                [0, 1, 0],
+            ]
+        )
+        rho = np.array([0.5, 0.6, 0.7])
+        response = abd.abd._temp_response_vector_rho(
+            exposure, n_inds=3, temp=1.0, rho=rho
+        ).eval()
+        expected_response = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.5, 1.0, 0.0],
+                [0.25, 0.6, 1.0],
+                [1.125, 0.36, 0.7],
+                [0.5625, 1.216, 0.49],
+            ]
+        )
+        np.testing.assert_almost_equal(response, expected_response)
 
 
 if __name__ == "__main__":
