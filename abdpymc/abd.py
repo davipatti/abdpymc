@@ -172,7 +172,7 @@ class CombinedTiterData:
     @classmethod
     def from_disk(cls, directory: str) -> "CombinedTiterData":
         """
-        Generate an instance of CombinedAllITitersData by reading data from disk,
+        Generate an instance of CombinedTiterData by reading data from disk,
         rather than making calls to the mfsera package.
 
         Args:

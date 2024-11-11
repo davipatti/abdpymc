@@ -554,7 +554,7 @@ def log_time(func: Callable) -> Callable:
         logging.log(logging.INFO, msg=f"Calling {func.__name__}", end=" ")
         result = func(*args, **kwargs)
         t1 = time.time()
-        logging.log(logging.INFO, msg=f"total = {t1-t0:2.1f} s")
+        logging.log(logging.INFO, msg=f"total = {t1 - t0:2.1f} s")
         return result
 
     return wrapped

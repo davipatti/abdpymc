@@ -1,20 +1,21 @@
 from collections import namedtuple
-from typing import Optional
+from dataclasses import dataclass
 from numbers import Number
+from typing import Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from pydantic import (
     BaseModel,
     ConfigDict,
     field_validator,
+    Field,
     FiniteFloat,
     NegativeFloat,
     NonNegativeFloat,
     PositiveFloat,
 )
-from dataclasses import dataclass
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 
 import abdpymc as abd
 
@@ -208,7 +209,7 @@ class Individual:
 
     pcrpos: np.array
     vacs: np.array
-    ab: Antibodies = Antibodies()
+    ab: Antibodies = Field(default_factory=Antibodies)
 
     def __post_init__(self) -> None:
         if self.pcrpos.shape != self.vacs.shape:
@@ -292,7 +293,7 @@ class Cohort:
 
     random_seed: int
     cohort_data_path: str
-    antibodies: Antibodies = Antibodies()
+    antibodies: Antibodies = Field(default_factory=Antibodies)
 
     def __post_init__(self) -> None:
         np.random.seed(self.random_seed)
