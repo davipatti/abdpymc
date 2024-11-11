@@ -12,6 +12,6 @@ dev = ["pytest", "pyflakes", "pycodestyle"]
 py-modules = ["abdpymc"]
 
 [project.scripts]
-abd-infer = "abdpymc.abd:main"
+abd-model = "abdpymc.abd:main"
 abd-timelines = "abdpymc.timelines:main"
 abd-subsample-idata = "abdpymc.subsample_idata:main"
