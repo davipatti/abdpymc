@@ -16,6 +16,7 @@ from .abd import (
     temp_response,
     TwoTimeChunks,
 )
+from . import abd
 from . import plotting
 from . import simulation
 from . import timelines
@@ -24,6 +25,7 @@ from .survival import load_or_sample_model, SurvivalAnalysis
 
 __version__ = "0.1.2"
 __all__ = [
+    "abd",
     "BLUEGREY",
     "CombinedTiterData",
     "compute_chunked_cum_p",

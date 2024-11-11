@@ -975,6 +975,32 @@ class TestTempResponse(unittest.TestCase):
         expected_response = np.zeros((10, 5))
         np.testing.assert_almost_equal(response, expected_response)
 
+    def test_compare_to_scan_implementation(self):
+        """
+        Test that abd.temp_response gives the same result as abd._temp_response_scan for 5 different
+        combinations of random parameters that are passed to these functions.
+        """
+        np.random.seed(42)
+        for _ in range(5):
+            n_gaps = np.random.randint(1, 20)
+            n_inds = np.random.randint(1, 10)
+            exposure = at.as_tensor_variable(
+                np.random.randint(0, 2, size=(n_gaps, n_inds))
+            )
+            temp = np.random.uniform(0.1, 2.0)
+            rho = np.random.uniform(0.1, 0.9)
+
+            kwds = dict(exposure=exposure, n_inds=n_inds, temp=temp, rho=rho)
+
+            with self.subTest(
+                n_gaps=n_gaps, n_inds=n_inds, temp=temp, rho=rho, exposure=exposure
+            ):
+
+                response = abd.temp_response(**kwds).eval()
+                response_scan = abd.abd._temp_response_scan(**kwds).eval()
+
+                np.testing.assert_almost_equal(response, response_scan)
+
 
 if __name__ == "__main__":
     # Stop pymc reporting things like which variables are going to be sampled
