@@ -258,7 +258,7 @@ def _temp_response_scalar_rho(exposure, n_inds, temp, rho):
     # gap. The first row captures an exposure in the first gap, second in the second etc...
     responses_each_gap = (rho**design - offset) * temp
 
-    return (responses_each_gap[:, :, None] * exposure[:, None, :]).sum(axis=0)
+    return (responses_each_gap[..., None] * exposure[:, None, :]).sum(axis=0)
 
 
 def _temp_response_vector_rho(exposure, n_inds, temp, rho):
@@ -307,7 +307,7 @@ def perm_response(exposure, perm):
     return at.switch(at.cumsum(exposure, axis=0) > 0.0, perm, 0.0)
 
 
-def model_popab_vacsep_nonwane_n(data: AntigenTiterData, i: at.TensorLike):
+def model_popab_n(data: AntigenTiterData, i: at.TensorLike):
     """
     Model an N response.
 
@@ -334,7 +334,7 @@ def model_popab_vacsep_nonwane_n(data: AntigenTiterData, i: at.TensorLike):
     temp = pm.Gamma(var("temp"), mu=1.0, sigma=0.5)
     rho = pm.Beta(var("rho"), alpha=10.0, beta=1.0)
 
-    temp_gap_ind = _temp_response_scalar_rho(
+    temp_gap_ind = _temp_response_scan(
         exposure=i, n_inds=data.n_inds, temp=temp, rho=rho
     )
 
@@ -372,20 +372,20 @@ def model_popab_vacsep_nonwane_s(
 
     # response that decays over time for vaccinations and infections
     rho = pm.Beta(var("rho"), alpha=10.0, beta=1.0)
-    p_waner = pm.Beta(var("p_waner"), alpha=1.0, beta=1.0)  # baseline p(waner)
-    waner = pm.Bernoulli(var("waner"), p=p_waner, dims="ind")
-    rho_per_ind = rho * waner + 1 - waner  # waner=1 -> rho=rho, waner=0 -> rho=1
+    # p_waner = pm.Beta(var("p_waner"), alpha=1.0, beta=1.0)  # baseline p(waner)
+    # waner = pm.Bernoulli(var("waner"), p=p_waner, dims="ind")
+    # rho_per_ind = rho * waner + 1 - waner  # waner=1 -> rho=rho, waner=0 -> rho=1
 
     # Infection response
     tempinf = pm.Gamma(var("tempinf"), mu=1.0, sigma=0.5)
-    tempinf_gap_ind = _temp_response_vector_rho(
-        exposure=i, n_inds=data.n_inds, temp=tempinf, rho=rho_per_ind
+    tempinf_gap_ind = _temp_response_scan(
+        exposure=i, n_inds=data.n_inds, temp=tempinf, rho=rho
     )
 
     # Vaccination response
     tempvac = pm.Gamma(var("tempvac"), mu=1.0, sigma=0.5)
-    tempvac_gap_ind = _temp_response_vector_rho(
-        exposure=v, n_inds=data.n_inds, temp=tempvac, rho=rho_per_ind
+    tempvac_gap_ind = _temp_response_scan(
+        exposure=v, n_inds=data.n_inds, temp=tempvac, rho=rho
     )
 
     init = pm.Normal(var("init"), -2, 1)
@@ -435,7 +435,7 @@ def model(
         i = time_chunks.constrain_infections(i_raw)
 
         # Infer infections and ab parameters
-        ititers_n = model_popab_vacsep_nonwane_n(data=data.n, i=i)
+        ititers_n = model_popab_n(data=data.n, i=i)
         ititers_s = model_popab_vacsep_nonwane_s(data=data.s, i=i, v=v)
 
         # Sigmoid likelihood
