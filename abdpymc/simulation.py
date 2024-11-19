@@ -1,7 +1,7 @@
 from collections import namedtuple
-from dataclasses import dataclass
 from numbers import Number
 from typing import Optional
+import dataclasses
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +10,6 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     field_validator,
-    Field,
     FiniteFloat,
     NegativeFloat,
     NonNegativeFloat,
@@ -196,7 +195,7 @@ class Antibodies(BaseModelNoExtra):
         self.n.protection.plot_curve(lo=lo, hi=hi, label="N", c=abd.BLUEGREY, **kwds)
 
 
-@dataclass
+@dataclasses.dataclass
 class Individual:
     """
     An individual.
@@ -209,9 +208,11 @@ class Individual:
 
     pcrpos: np.ndarray
     vacs: np.ndarray
-    ab: Antibodies = Field(default_factory=Antibodies)
+    ab: Antibodies = dataclasses.field(default_factory=Antibodies)
 
     def __post_init__(self) -> None:
+        self.pcrpos = np.array(self.pcrpos)
+        self.vacs = np.array(self.vacs)
         if self.pcrpos.shape != self.vacs.shape:
             raise ValueError("vaccination and pcrpos are different shapes")
         if self.pcrpos.ndim != 1:
@@ -278,7 +279,7 @@ class Individual:
         return InfectionResponses(infections=infections, s_response=s, n_response=n)
 
 
-@dataclass
+@dataclasses.dataclass
 class Cohort:
     """
     Args:
@@ -293,7 +294,7 @@ class Cohort:
 
     random_seed: int
     cohort_data_path: str
-    antibodies: Antibodies = Field(default_factory=Antibodies)
+    antibodies: Antibodies = dataclasses.field(default_factory=Antibodies)
 
     def __post_init__(self) -> None:
         np.random.seed(self.random_seed)
