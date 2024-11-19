@@ -7,7 +7,7 @@ import arviz as az
 
 
 def main():
-    parser = argparse.ArgumentParser("subsample_data.py")
+    parser = argparse.ArgumentParser("abdpymc-subsample-idata")
     parser.add_argument(
         "--idata", required=True, help="NetCDF file of InferenceData object."
     )

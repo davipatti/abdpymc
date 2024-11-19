@@ -889,7 +889,7 @@ def make_time_chunks(
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser("abd-model")
+    parser = argparse.ArgumentParser("abdpymc-infer")
     parser.add_argument(
         "--tune", help="Number of tuning steps.", type=int, required=True
     )

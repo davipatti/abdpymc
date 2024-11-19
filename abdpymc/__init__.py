@@ -22,7 +22,7 @@ from . import timelines
 from . import survival
 from .survival import load_or_sample_model, SurvivalAnalysis
 
-__version__ = "0.1.2"
+__version__ = "1.0.0"
 __all__ = [
     "abd",
     "BLUEGREY",

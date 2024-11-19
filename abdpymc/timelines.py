@@ -576,7 +576,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        "abd-timelines",
+        "abdpymc-plot-timelines",
         description="Default behaviour is to plot all individuals in batches of 250. "
         "Use --individuals to plot only specific individuals or --pcrpos_only to plot "
         "only individuals that have a PCR+ test result.",
