@@ -133,7 +133,7 @@ class Dynamics(BaseModelNoExtra):
         )
 
     def perm_response(
-        self, infections: np.array, vaccinations: Optional[np.array] = None
+        self, infections: np.ndarray, vaccinations: Optional[np.array] = None
     ) -> float:
         """
         Calculate a permanent response, given an array of infections and optional
@@ -207,8 +207,8 @@ class Individual:
         ab: Antibody responses.
     """
 
-    pcrpos: np.array
-    vacs: np.array
+    pcrpos: np.ndarray
+    vacs: np.ndarray
     ab: Antibodies = Field(default_factory=Antibodies)
 
     def __post_init__(self) -> None:
@@ -218,7 +218,7 @@ class Individual:
             raise ValueError("vaccination and pcrpos should be 1 dimensional")
         self.n_gaps = len(self.pcrpos)
 
-    def infection_responses(self, lam0: np.array) -> InfectionResponses:
+    def infection_responses(self, lam0: np.ndarray) -> InfectionResponses:
         """
         Simulate infections and responses.
 
@@ -308,7 +308,7 @@ class Cohort:
             for i in range(self.n_inds)
         ]
 
-    def simulate_responses(self, lam0: np.array) -> None:
+    def simulate_responses(self, lam0: np.ndarray) -> None:
         """
         Simulate responses for all individuals. This method updates self.s_titer,
         self.n_titer and self.infections.
