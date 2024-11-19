@@ -76,7 +76,7 @@ class TestAllITitersData(unittest.TestCase):
         """
         root = Path(abd.__file__).parent.parent
         directory = root.joinpath(Path("data", "cohort_data"))
-        cls.cat = abd.CombinedTiterData.from_disk(directory)
+        cls.cat = abd.TiterData.from_disk(directory)
 
     def test_idx_gap_shape(self):
         """
@@ -629,7 +629,7 @@ class TestInvLogistic(unittest.TestCase):
         self.assertEqual(3, abd.logistic(abd.invlogistic(3, **kwds), **kwds))
 
 
-class CombinedTiterDataPath:
+class TiterDataPath:
     @classmethod
     def setUpClass(cls):
         cls.directory = Path(
@@ -637,27 +637,27 @@ class CombinedTiterDataPath:
         )
 
 
-class TestCombinedTiterData(CombinedTiterDataPath, unittest.TestCase):
+class TestTiterData(TiterDataPath, unittest.TestCase):
     """
-    Tests for abdpymc.CombinedTiterData.
+    Tests for abdpymc.TiterData.
     """
 
     def test_coords_inds(self):
         """
         `ind` coord should be 0, ..., n_inds - 1
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         self.assertEqual(list(range(10)), list(data.coords["ind"]))
 
     def test_coords_gaps(self):
         """
         `gap` coord should be 0, ..., n_gaps - 1
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         self.assertEqual(list(range(26)), list(data.coords["gap"]))
 
 
-class TestModel(CombinedTiterDataPath, unittest.TestCase):
+class TestModel(TiterDataPath, unittest.TestCase):
     """
     Tests for abdpymc.model.
     """
@@ -666,7 +666,7 @@ class TestModel(CombinedTiterDataPath, unittest.TestCase):
         """
         Test the test data is as expected.
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         self.assertEqual(10, data.n_inds)
         self.assertEqual(26, data.n_gaps)
         self.assertEqual((10, 26), data.vacs.shape)
@@ -676,7 +676,7 @@ class TestModel(CombinedTiterDataPath, unittest.TestCase):
         """
         Test that the only indexes present are gap and ind.
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         with abd.model(data=data):
             idata = pm.sample_prior_predictive(samples=1)
         self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
@@ -685,7 +685,7 @@ class TestModel(CombinedTiterDataPath, unittest.TestCase):
         """
         Test that the only indexes present are gap and ind.
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         splits = data.calculate_splits(delta=True, omicron=False)
         with abd.model(data=data, splits=splits):
             idata = pm.sample_prior_predictive(samples=1)
@@ -695,7 +695,7 @@ class TestModel(CombinedTiterDataPath, unittest.TestCase):
         """
         Test that the only indexes present are gap and ind.
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         splits = data.calculate_splits(delta=False, omicron=True)
         with abd.model(data=data, splits=splits):
             idata = pm.sample_prior_predictive(samples=1)
@@ -705,7 +705,7 @@ class TestModel(CombinedTiterDataPath, unittest.TestCase):
         """
         Test that the only indexes present are gap and ind.
         """
-        data = abd.CombinedTiterData.from_disk(self.directory)
+        data = abd.TiterData.from_disk(self.directory)
         splits = data.calculate_splits(delta=True, omicron=True)
         with abd.model(data=data, splits=splits):
             idata = pm.sample_prior_predictive(samples=1)

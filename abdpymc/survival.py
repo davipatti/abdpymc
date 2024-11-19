@@ -50,7 +50,7 @@ class SurvivalAnalysis:
     abd_inference: dict | az.InferenceData
     start: int
     end: int
-    cohort_data: "abdpymc.CombinedTiterData"
+    cohort_data: "abdpymc.TiterData"
 
     def __post_init__(self):
         self.from_MAP = isinstance(self.abd_inference, dict)
@@ -129,7 +129,7 @@ class SurvivalAnalysis:
             a = pm.Normal("a", 0.0, 1.0)
             b = pm.Normal("b", 0.0, 1.0)
             lam0 = make_hierarchical_lam0(dims="intervals", hyper_mu=-3.0)
-            lam = lam0 / (1.0 + np.exp((titer - a) @ -b))
+            lam = lam0 / (1.0 + np.exp((titer - a) * -b))
             pm.Poisson("obs", exposure * lam, observed=infected)
 
         return model

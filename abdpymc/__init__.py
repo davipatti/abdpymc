@@ -1,6 +1,6 @@
 from .abd import (
     BLUEGREY,
-    CombinedTiterData,
+    TiterData,
     compute_chunked_cum_p,
     DARKORANGE,
     incorporate_pcrpos,
@@ -26,7 +26,7 @@ __version__ = "1.0.0"
 __all__ = [
     "abd",
     "BLUEGREY",
-    "CombinedTiterData",
+    "TiterData",
     "compute_chunked_cum_p",
     "DARKORANGE",
     "incorporate_pcrpos",

@@ -61,7 +61,7 @@ def hi_lo_scaler(p: Union[Number, Iterable[Number]], lo: Number, hi: Number):
         return _hi_lo_scaler_scalar(p, lo, hi)
 
 
-def load_ititers(path: str, data: abd.CombinedTiterData) -> pd.DataFrame:
+def load_ititers(path: str, data: abd.TiterData) -> pd.DataFrame:
     """Load DataFrame containing inflection titers"""
     df = pd.read_csv(path, index_col=0)
     df["elapsed_months"] = [data.date_to_gap(date) for date in df["collection_date"]]
@@ -216,7 +216,7 @@ plot_preomicron_background = functools.partial(
 
 def plot_individual(
     ind_i,
-    data: abd.CombinedTiterData,
+    data: abd.TiterData,
     post: xr.Dataset,
     df_ititers: pd.DataFrame,
     ymin: Union[float, int] = -4,
@@ -445,9 +445,7 @@ def plot_titers(
         )
 
 
-def finish_timeline_ax(
-    ax: mpl.axes.Axes, data: abd.CombinedTiterData, yaxis=True
-) -> None:
+def finish_timeline_ax(ax: mpl.axes.Axes, data: abd.TiterData, yaxis=True) -> None:
     """
     Adjust ticks and labels for a plot which has cohort time on the x-axis.
 
@@ -656,7 +654,7 @@ def main():
 
     idata = az.from_netcdf(args.idata)
 
-    data = abd.CombinedTiterData.from_disk(args.cohort_data)
+    data = abd.TiterData.from_disk(args.cohort_data)
 
     splits = (
         data.calculate_splits(delta=args.split_delta, omicron=args.split_omicron)

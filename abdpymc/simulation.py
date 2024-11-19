@@ -283,7 +283,7 @@ class Cohort:
     """
     Args:
         random_seed: Passed to np.random.seed.
-        cohort_data_path: See abdpymc.abd.CombinedTiterData.
+        cohort_data_path: See abdpymc.abd.TiterData.
         antibodies: Defines antibody responses.
 
     Attributes:
@@ -297,7 +297,7 @@ class Cohort:
 
     def __post_init__(self) -> None:
         np.random.seed(self.random_seed)
-        self.true = abd.CombinedTiterData.from_disk(self.cohort_data_path)
+        self.true = abd.TiterData.from_disk(self.cohort_data_path)
         self.n_inds, self.n_gaps = self.true.vacs.shape
         self.individuals = [
             Individual(
@@ -327,7 +327,7 @@ class Cohort:
     def simulate_row(self, row: pd.Series) -> dict:
         """
         Simulate an OD reading given this simulation's parameters and a row of data from
-        the main cohort dataset (abdpymc.abd.CombinedTiterData.data). See
+        the main cohort dataset (abdpymc.abd.TiterData.data). See
         self.simulate_dataset for more details.
 
         Args:

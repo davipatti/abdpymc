@@ -20,7 +20,7 @@ class TestSurvivalAnalysis(unittest.TestCase):
         cls.idata = az.from_netcdf(idata_path)
 
         cohort_data_path = Path(root, "data", "cohort_data")
-        cls.data = abdpymc.CombinedTiterData.from_disk(cohort_data_path)
+        cls.data = abdpymc.TiterData.from_disk(cohort_data_path)
 
     def test_make_instance(self):
         """

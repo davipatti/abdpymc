@@ -43,7 +43,7 @@ class AntigenTiterData:
         return f"AntigenTiterData(ag={self.ag}, df={self.df})"
 
 
-class CombinedTiterData:
+class TiterData:
     def __init__(
         self,
         t0: pd.Period,
@@ -132,7 +132,7 @@ class CombinedTiterData:
             )
 
     def __repr__(self) -> str:
-        return f"CombinedTiterData(t0={self.t0}, n_inds={self.n_inds})"
+        return f"TiterData(t0={self.t0}, n_inds={self.n_inds})"
 
     @property
     def periods(self) -> pd.Series:
@@ -170,7 +170,7 @@ class CombinedTiterData:
             fobj.write(str(self.t0))
 
     @classmethod
-    def from_disk(cls, directory: str) -> "CombinedTiterData":
+    def from_disk(cls, directory: str) -> "TiterData":
         """
         Generate an instance of CombinedAllITitersData by reading data from disk,
         rather than making calls to the mfsera package.
@@ -397,7 +397,7 @@ def model_popab_vacsep_nonwane_s(
 
 
 def model(
-    data: CombinedTiterData,
+    data: TiterData,
     splits: Optional[Union[tuple[int], tuple[int, int]]] = None,
     ignore_pcrpos: int = False,
 ):
@@ -484,7 +484,7 @@ def unique_ids(values: Iterable) -> list[int]:
 
 
 class PlotConfig:
-    def __init__(self, data: CombinedTiterData):
+    def __init__(self, data: TiterData):
         """
         Commonly used attributes in plotting individual timeseries.
         """
@@ -605,7 +605,7 @@ def mask_future_infection(i0, im3, im2, im1):
 
 
 def check_splits(
-    splits: Union[tuple[int, ...], None], data: Optional[CombinedTiterData] = None
+    splits: Union[tuple[int, ...], None], data: Optional[TiterData] = None
 ):
     """
     Check splits are valid.
@@ -897,7 +897,7 @@ def main():
     parser.add_argument("--cores", help="Number of cores", type=int)
     parser.add_argument(
         "--ititers_data",
-        help="Path to directory for generating CombinedTiterData object.",
+        help="Path to directory for generating TiterData object.",
         default="cohort_data",
     )
     parser.add_argument(
@@ -914,7 +914,7 @@ def main():
     parser.add_argument("--netcdf", help="Path of netCDF file to save.")
     args = parser.parse_args()
 
-    data = CombinedTiterData.from_disk(args.ititers_data)
+    data = TiterData.from_disk(args.ititers_data)
 
     splits = (
         None
