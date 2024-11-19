@@ -26,7 +26,7 @@ Repository = "https://github.com/IRI-UW-Bioinformatics/pacc-antibody-dynamics"
 
 
 [project.optional-dependencies]
-dev = ["pytest", "pyflakes", "pycodestyle"]
+dev = ["pytest", "flake8"]
 
 [tool.setuptools]
 py-modules = ["abdpymc"]
