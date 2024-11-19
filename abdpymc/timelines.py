@@ -647,6 +647,11 @@ def main():
         action="store_true",
         help="If using --individuals, add alphabetical labels to each ax.",
     )
+    parser.add_argument(
+        "--dont_show_independent_titers",
+        help="Don't plot independent titer estimates stored in <cohort_data>/ititers.csv",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     idata = az.from_netcdf(args.idata)
@@ -663,7 +668,10 @@ def main():
 
     post_mean = compute_posterior_mean(post)
 
-    df_ititers = load_ititers(path=f"{args.cohort_data}/ititers.csv", data=data)
+    try:
+        df_ititers = load_ititers(path=f"{args.cohort_data}/ititers.csv", data=data)
+    except FileNotFoundError:
+        df_ititers = None
 
     kwds = dict(
         data=data,
@@ -672,6 +680,8 @@ def main():
         splits=splits,
         df_ititers=df_ititers,
         subplots_kwds=dict(gridspec_kw=dict(wspace=0.05, hspace=0.15)),
+        show_s_data=not args.dont_show_independent_titers,
+        show_n_data=not args.dont_show_independent_titers,
     )
 
     if args.individuals:
