@@ -307,7 +307,7 @@ def perm_response(exposure, perm):
     return at.switch(at.cumsum(exposure, axis=0) > 0.0, perm, 0.0)
 
 
-def model_popab_vacsep_nonwane_n(data: AntigenTiterData, i: at.TensorLike):
+def model_n_response(data: AntigenTiterData, i: at.TensorLike):
     """
     Model an N response.
 
@@ -344,9 +344,7 @@ def model_popab_vacsep_nonwane_n(data: AntigenTiterData, i: at.TensorLike):
     return mu[data.idx_gap, data.idx_ind]
 
 
-def model_popab_vacsep_nonwane_s(
-    data: AntigenTiterData, i: at.TensorLike, v: at.TensorLike
-):
+def model_s_response(data: AntigenTiterData, i: at.TensorLike, v: at.TensorLike):
     """
     Model an S response.
 
@@ -435,8 +433,8 @@ def model(
         i = time_chunks.constrain_infections(i_raw)
 
         # Infer infections and ab parameters
-        ititers_n = model_popab_vacsep_nonwane_n(data=data.n, i=i)
-        ititers_s = model_popab_vacsep_nonwane_s(data=data.s, i=i, v=v)
+        ititers_n = model_n_response(data=data.n, i=i)
+        ititers_s = model_s_response(data=data.s, i=i, v=v)
 
         # Sigmoid likelihood
         model_sigmoids(data=data.n, a=ititers_n)
