@@ -1,4 +1,4 @@
-name: Database tests
+name: abdpymc tests
 
 on:
   workflow_dispatch:
