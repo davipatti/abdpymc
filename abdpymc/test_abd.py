@@ -679,7 +679,7 @@ class TestModel(TiterDataPath, unittest.TestCase):
         """
         data = abd.TiterData.from_disk(self.directory)
         with abd.model(data=data):
-            idata = pm.sample_prior_predictive(samples=1)
+            idata = pm.sample_prior_predictive(draws=1)
         self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
 
     def test_indexes_split_delta(self):
@@ -689,7 +689,7 @@ class TestModel(TiterDataPath, unittest.TestCase):
         data = abd.TiterData.from_disk(self.directory)
         splits = data.calculate_splits(delta=True, omicron=False)
         with abd.model(data=data, splits=splits):
-            idata = pm.sample_prior_predictive(samples=1)
+            idata = pm.sample_prior_predictive(draws=1)
         self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
 
     def test_indexes_split_omicron(self):
@@ -699,7 +699,7 @@ class TestModel(TiterDataPath, unittest.TestCase):
         data = abd.TiterData.from_disk(self.directory)
         splits = data.calculate_splits(delta=False, omicron=True)
         with abd.model(data=data, splits=splits):
-            idata = pm.sample_prior_predictive(samples=1)
+            idata = pm.sample_prior_predictive(draws=1)
         self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
 
     def test_indexes_split_delta_omicron(self):
@@ -709,7 +709,7 @@ class TestModel(TiterDataPath, unittest.TestCase):
         data = abd.TiterData.from_disk(self.directory)
         splits = data.calculate_splits(delta=True, omicron=True)
         with abd.model(data=data, splits=splits):
-            idata = pm.sample_prior_predictive(samples=1)
+            idata = pm.sample_prior_predictive(draws=1)
         self.assertEqual({"chain", "draw", "gap", "ind"}, set(idata.prior.indexes))
 
 
