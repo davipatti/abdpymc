@@ -64,7 +64,7 @@ def hi_lo_scaler(p: Union[Number, Iterable[Number]], lo: Number, hi: Number):
 def load_ititers(path: str, data: abd.TiterData) -> pd.DataFrame:
     """Load DataFrame containing inflection titers"""
     df = pd.read_csv(path, index_col=0)
-    df["elapsed_months"] = [data.date_to_gap(date) for date in df["collection_date"]]
+    df["elapsed_months"] = [data.date_to_gap(date) for date in df["Collection Date"]]
     return df
 
 
@@ -520,11 +520,7 @@ def plot_multiple_individuals(
 
 
 def plot_multiple_individuals_batches(
-    individuals: Iterable[int],
-    fname: str,
-    nrows: int = 10,
-    ncols: int = 25,
-    **kwds,
+    individuals: Iterable[int], fname: str, nrows: int = 10, ncols: int = 25, **kwds
 ):
     """
     Plot multiple individual timelines in batches of up to 250.
@@ -581,9 +577,9 @@ def main():
     )
     parser.add_argument("--idata", help="Path of .nc file", required=True)
     parser.add_argument(
-        "--png_pref",
-        help="Prefix of PNG filenames to save. Files will have this suffix appended: "
-        "'-{}-{}.png'. The index of the first and last individuals occupy the curly "
+        "--fname_pref",
+        help="Prefix of PDF filenames to save. Files will have this suffix appended: "
+        "'-{}-{}.pdf'. The index of the first and last individuals occupy the curly "
         "braces.",
     )
     parser.add_argument(
@@ -706,14 +702,14 @@ def main():
     elif args.pcrpos_only:
         plot_multiple_individuals_batches(
             individuals=np.flatnonzero(data.pcrpos.any(axis=1)),
-            fname=f"{args.png_pref}-{{}}-{{}}.png",
+            fname=f"{args.fname_pref}-{{}}-{{}}.pdf",
             **kwds,
         )
 
     else:
         plot_multiple_individuals_batches(
             individuals=range(data.n_inds),
-            fname=f"{args.png_pref}-{{}}-{{}}.png",
+            fname=f"{args.fname_pref}-{{}}-{{}}.pdf",
             nrows=args.nrows,
             ncols=args.ncols,
             **kwds,
