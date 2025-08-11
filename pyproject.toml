@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools >= 77.0.3", "setuptools-scm >= 8"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "abdpymc"
 description = "Antibody dynamics using PyMC"
@@ -22,8 +26,7 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/IRI-UW-Bioinformatics/pacc-antibody-dynamics"
-
+Repository = "https://github.com/davipatti/abdpymc"
 
 [project.optional-dependencies]
 dev = ["pytest", "flake8"]
@@ -35,3 +38,5 @@ py-modules = ["abdpymc"]
 abdpymc-infer = "abdpymc.abd:main"
 abdpymc-plot-timelines = "abdpymc.timelines:main"
 abdpymc-subsample-idata = "abdpymc.subsample_idata:main"
+
+[tool.setuptools_scm]
