@@ -64,7 +64,7 @@ def hi_lo_scaler(p: Union[Number, Iterable[Number]], lo: Number, hi: Number):
 def load_ititers(path: str, data: abd.TiterData) -> pd.DataFrame:
     """Load DataFrame containing inflection titers"""
     df = pd.read_csv(path, index_col=0)
-    df["elapsed_months"] = [data.date_to_gap(date) for date in df["Collection Date"]]
+    df["elapsed_months"] = [data.date_to_gap(date) for date in df["collection_date"]]
     return df
 
 
