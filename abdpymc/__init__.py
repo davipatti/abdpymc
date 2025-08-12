@@ -1,3 +1,5 @@
+from importlib.metadata import version, PackageNotFoundError
+
 from .abd import (
     BLUEGREY,
     TiterData,
@@ -22,7 +24,12 @@ from . import timelines
 from . import survival
 from .survival import load_or_sample_model, SurvivalAnalysis
 
-__version__ = "1.0.0"
+
+try:
+    __version__ = version("abdpymc")
+except PackageNotFoundError:
+    pass
+
 __all__ = [
     "abd",
     "BLUEGREY",
