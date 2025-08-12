@@ -1,9 +1,10 @@
 # abdpymc
 
+[![abdpymc tests](https://github.com/davipatti/abdpymc/actions/workflows/run-tests.yml/badge.svg)](https://github.com/davipatti/abdpymc/actions/workflows/run-tests.yml)
+
 Antibody dynamics using PyMC.
 
-GitHub repo:
-[github.com/davipatti/abdpymc](https://github.com/davipatti/abdpymc).
+[Github](https://github.com/davipatti/abdpymc) repo.
 
 ## Installation
 
