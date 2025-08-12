@@ -58,7 +58,6 @@ class TiterData:
         Args:
             t0: The fist month in the analysis. All gap indexes are relative to this
                 first month.
-            n_inds: Only generate data for this many individuals.
             df: See to_disk and from_disk.
             vacs: Similar to df, but for the vaccination data. See to_disk and from_disk.
             pcrpos: Similar to df, but for the PCR+ data. See to_disk and from_disk.
@@ -839,7 +838,6 @@ def mask_multiple_infections_2_chunks(arr: at.TensorLike, split: int):
        ]
 
     This should be the result:
-        Then this should be the product:
 
     [
         [1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1],
