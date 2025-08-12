@@ -33,6 +33,7 @@ dev = ["pytest", "flake8"]
 
 [tool.setuptools]
 py-modules = ["abdpymc"]
+include-package-data = true
 
 [project.scripts]
 abdpymc-infer = "abdpymc.abd:main"
