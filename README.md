@@ -8,9 +8,7 @@ Antibody dynamics using PyMC.
 
 ## Installation
 
-To install, clone and `cd` to this repo. Make a new virtual environment and  `pip install .`.
-
-To run tests do `pip install .[dev]` and then call `pytest`.
+Make a new virtual environment and  `pip install abdpymc`.
 
 ## Usage
 
