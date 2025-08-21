@@ -51,7 +51,6 @@ __all__ = [
     "simulation",
     "survival",
     "SurvivalAnalysis",
-    "temp_response",
     "timelines",
     "TwoTimeChunks",
 ]

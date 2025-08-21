@@ -249,8 +249,8 @@ def plot_individual(
             are plotted.
         splits: Plot cummulative infection probabilities within the time chunks delimited
             by splits.
-        post_mean: Precomupted posterior mean. Can save time to precomupte over multiple
-            individuals if plot_individual is being called alot.
+        post_mean: Precomputed posterior mean. Can save time to precompute over multiple
+            individuals if plot_individual is being called a lot.
         show_s_post: Show posterior infection probabilities and antibody responses for S.
         show_n_post: Show posterior infection probabilities and antibody responses for N.
         show_s_data: Show inflection titer estimates for S.
@@ -402,7 +402,6 @@ def plot_titers(
 
     if distinguish_single_vs_multiple:
         df_single = df.query("dilutions == '40'")
-        # if not df_single.empty:
         ax.scatter(
             df_single["elapsed_months"] + 0.5,
             df_single["titer"],
@@ -412,7 +411,6 @@ def plot_titers(
         )
 
         df_multiple = df.query("dilutions != '40'")
-        # if not df_multiple.empty:
         ax.scatter(
             df_multiple["elapsed_months"] + 0.5,
             df_multiple["titer"],
@@ -592,13 +590,13 @@ def main():
     parser.add_argument(
         "--no_cumm_p",
         action="store_true",
-        help="Dont plot cummulative infection probabilities. --split_{delta,omicron} "
+        help="Don't plot cumulative infection probabilities. --split_{delta,omicron} "
         "have no effect if this is passed.",
     )
     parser.add_argument(
         "--split_delta",
         action="store_true",
-        help="Plot cummulative infection probabilities in separate chunks. Use this "
+        help="Plot cumulative infection probabilities in separate chunks. Use this "
         "flag to split delta from pre-delta.",
     )
     parser.add_argument(

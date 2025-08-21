@@ -1,5 +1,5 @@
-abdpymc.egg-info
 **.pyc
 **__pycache__
-data
 .vscode
+abdpymc.egg-info
+dist

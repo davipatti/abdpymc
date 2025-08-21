@@ -294,7 +294,7 @@ def load_or_sample_model(
 
     try:
         idata = az.from_netcdf(path)
-        logging.info(f"loaded exisitng NetCDF: {path}")
+        logging.info(f"loaded existing NetCDF: {path}")
 
     except FileNotFoundError:
         if isinstance(model, pm.Model):
